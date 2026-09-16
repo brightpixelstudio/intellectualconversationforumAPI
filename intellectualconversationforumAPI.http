@@ -1,0 +1,6 @@
+@intellectualconversationforumAPI_HostAddress = http://localhost:5185
+
+GET {{intellectualconversationforumAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
