@@ -135,7 +135,7 @@ namespace intellectualconversationforumAPI.Controllers
 
         // posts, updates and deletes
         [HttpPost(Name = "AddNewMember")]
-        public async Task<ActionResult<IEnumerable<AddNewMember>>> AddNewMember([FromBody] FormRegistration model)
+        public async Task<ActionResult> AddNewMember([FromBody] FormRegistration model)
         {
             if (!ModelState.IsValid) {
                 return BadRequest(new { message = "The form is not valid" });
@@ -150,8 +150,8 @@ namespace intellectualconversationforumAPI.Controllers
                 var results = await _context.IsEmailAndUsernameUsed
                     .FromSqlRaw("CALL IsEmailAndUsernameUsed({0}, {1})", email, username)
                     .ToListAsync();
-                    
-                    // result?
+
+                // result?
                 if (results.Count > 0)
                 {
                     return BadRequest(new { message = "The email or username is already being used" });
@@ -170,9 +170,18 @@ namespace intellectualconversationforumAPI.Controllers
                 return Ok(new { message = "Member successfully inserted" });
             }
         }
-    }
 
-    public class AddNewMember
-    {
+        [HttpDelete(Name = "DeleteMember")]
+        public async Task<ActionResult> DeleteMember(int userid)
+        {
+            // Define the parameter to prevent SQL Injection
+            var userId = new MySqlParameter("@userid", userid);
+
+            // add the record
+            var affectedRows = _context.Database.ExecuteSqlRaw(
+                "CALL DeleteUser({0})", userId);
+
+            return Ok(new { message = "Member successfully deleted" });
+        }
     }
 }
