@@ -5,7 +5,6 @@ namespace intellectualconversationAPI.Models
 {
     public class GetAllProfileMembers
     {
-
         [Key]
         public int userid { get; set; }
         public int usertypeid { get; set; }
