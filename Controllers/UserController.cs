@@ -130,6 +130,22 @@ namespace intellectualconversationforumAPI.Controllers
             return Ok(getprofile);
         }
 
+        [HttpGet(Name = "GetUserList")]
+        public async Task<ActionResult<IEnumerable<GetUserList>>> GetUserList()
+        {
+            // MySQL utilizes the 'CALL' syntax
+            var getUsers = await _context.GetUserList
+                .FromSqlRaw("CALL GetUserList()")
+                .ToListAsync();
+
+            if (getUsers.Count == 0)
+                return NotFound();
+
+            // return results
+            return Ok(getUsers);
+        }
+        
+
         /******************************************************************************/
         // posts, updates and deletes
         /******************************************************************************/

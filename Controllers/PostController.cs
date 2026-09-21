@@ -79,42 +79,6 @@ namespace intellectualconversationforumAPI.Controllers
 
             // return results
             return Ok(getrecords);
-
-            /*
-            // Define the parameter to prevent SQL Injection
-            var postid = new MySqlParameter("postid", postId);
-
-            // MySQL utilizes the 'CALL' syntax
-            var getrecords = await _context.GetPostComments
-                .FromSqlRaw("CALL GetPostComments({0})", postid)
-                .ToListAsync();
-
-            if (getrecords.Count == 0)
-                return NotFound();
-
-            // return results
-            return Ok(getrecords);
-            */
         }
-
-        /*
-        [HttpGet(Name = "GetPostComments")]
-        public async Task<ActionResult<IEnumerable<GetPostComments>>> GetPostComments(int postId)
-        {
-            // Define the parameter to prevent SQL Injection
-            var postid = new MySqlParameter("postid", postId);
-
-            // MySQL utilizes the 'CALL' syntax
-            var getrecords = await _context.GetPostComments
-                .FromSqlRaw("CALL GetPostComments({0})", postid)
-                .ToListAsync();
-
-            if (getrecords.Count == 0)
-                return NotFound();
-
-            // return results
-            return Ok(getrecords);
-        }
-        */
     }
 }
