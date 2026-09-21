@@ -12,6 +12,7 @@ namespace intellectualconversationAPI.Models
         public string? catagory { get; set; }
         public DateTime dateadded { get; set; }
         public int count { get; set; }
-        public string? shorttext { get; set; }
+        public string? shorttextpost { get; set; }
+        public string? shorttextcomment { get; set; }
     }
 }

@@ -33,6 +33,21 @@ namespace intellectualconversationforumAPI.Controllers
             return Ok(getrecords);
         }
 
+        [HttpGet(Name = "GetMostPostsMembers")]
+        public async Task<ActionResult<IEnumerable<GetMostPostsMembers>>> GetMostPostsMembers()
+        {
+            // MySQL utilizes the 'CALL' syntax
+            var getrecords = await _context.GetMostPostsMembers
+                .FromSqlRaw("CALL GetMostPostsMembers()")
+                .ToListAsync();
+
+            if (getrecords.Count == 0)
+                return NotFound();
+
+            // return results
+            return Ok(getrecords);
+        }
+
         [HttpGet(Name = "GetMostPopularPostWithComments")]
         public async Task<ActionResult<IEnumerable<GetMostPopularPostWithComments>>> GetMostPopularPostWithComments()
         {

@@ -34,21 +34,6 @@ namespace intellectualconversationforumAPI.Controllers
             return Ok(getusers);
         }
 
-        [HttpGet(Name = "GetMostPostsMembers")]
-        public async Task<ActionResult<IEnumerable<GetMostPostsMembers>>> GetMostPostsMembers()
-        {
-            // MySQL utilizes the 'CALL' syntax
-            var getusers = await _context.GetMostPostsMembers
-                .FromSqlRaw("CALL GetMostPostsMembers()")
-                .ToListAsync();
-
-            if (getusers.Count == 0)
-                return NotFound();
-
-            // return results
-            return Ok(getusers);
-        }
-
         [HttpGet(Name = "GetNewestMembers")]
         public async Task<ActionResult<IEnumerable<GetNewestMembers>>> GetNewestMembers()
         {
@@ -64,6 +49,24 @@ namespace intellectualconversationforumAPI.Controllers
             return Ok(getusers);
         }
 
+        [HttpGet(Name = "GetAllProfileMembers")]
+        public async Task<ActionResult<IEnumerable<GetAllProfileMembers>>> GetAllProfileMembers()
+        {
+            // MySQL utilizes the 'CALL' syntax
+            var getprofiles = await _context.GetAllProfileMembers
+                .FromSqlRaw("CALL GetAllProfileMembers()")
+                .ToListAsync();
+
+            if (getprofiles.Count == 0)
+                return NotFound();
+
+            // return results
+            return Ok(getprofiles);
+        }
+
+        /******************************************************************************/
+        // Specific member 
+        /******************************************************************************/
         [HttpGet(Name = "GetPostsMember")]
         public async Task<ActionResult<IEnumerable<GetPostsMember>>> GetPostsMember(int userid)
         {
@@ -75,13 +78,25 @@ namespace intellectualconversationforumAPI.Controllers
                 .FromSqlRaw("CALL GetPostsMember({0})", userId)
                 .ToListAsync();
 
-            if (getposts.Count == 0)
-                return NotFound();
-
             // return results
             return Ok(getposts);
         }
 
+        [HttpGet(Name = "GetCommentsMember")]
+        public async Task<ActionResult<IEnumerable<GetCommentsMember>>> GetCommentsMember(int userid)
+        {
+            // Define the parameter to prevent SQL Injection
+            var userId = new MySqlParameter("@userid", userid);
+
+            // MySQL utilizes the 'CALL' syntax
+            var getcomments = await _context.GetCommentsMember
+                .FromSqlRaw("CALL GetCommentsMember({0})", userId)
+                .ToListAsync();
+
+            // return results
+            return Ok(getcomments);
+        }
+        
         [HttpGet(Name = "GetPostsWithMostCommentsMember")]
         public async Task<ActionResult<IEnumerable<GetPostsWithMostCommentsMember>>> GetPostsWithMostCommentsMember(int userid)
         {
@@ -92,9 +107,6 @@ namespace intellectualconversationforumAPI.Controllers
             var getposts = await _context.GetPostsWithMostCommentsMember
                 .FromSqlRaw("CALL GetPostsWithMostCommentsMember({0})", userId)
                 .ToListAsync();
-
-            if (getposts.Count == 0)
-                return NotFound();
 
             // return results
             return Ok(getposts);
@@ -118,22 +130,9 @@ namespace intellectualconversationforumAPI.Controllers
             return Ok(getprofile);
         }
 
-        [HttpGet(Name = "GetAllProfileMembers")]
-        public async Task<ActionResult<IEnumerable<GetAllProfileMembers>>> GetAllProfileMembers()
-        {
-            // MySQL utilizes the 'CALL' syntax
-            var getprofiles = await _context.GetAllProfileMembers
-                .FromSqlRaw("CALL GetAllProfileMembers()")
-                .ToListAsync();
-
-            if (getprofiles.Count == 0)
-                return NotFound();
-
-            // return results
-            return Ok(getprofiles);
-        }
-
+        /******************************************************************************/
         // posts, updates and deletes
+        /******************************************************************************/
         [HttpPost(Name = "AddNewMember")]
         public async Task<ActionResult> AddNewMember([FromBody] FormRegistration model)
         {
@@ -159,7 +158,7 @@ namespace intellectualconversationforumAPI.Controllers
 
                 // Define the parameter to prevent SQL Injection
                 var name = new MySqlParameter("@name", model.name);
-                var zip = new MySqlParameter("@zip", model.zip);
+                var zip = new MySqlParameter("@zip", model.zipcode);
                 var password = new MySqlParameter("@password", model.password);
                 var profile = new MySqlParameter("@profile", model.profile);
 
@@ -171,6 +170,43 @@ namespace intellectualconversationforumAPI.Controllers
             }
         }
 
+        [HttpPost(Name = "UpdateMemberProfile")]
+        public async Task<ActionResult> UpdateMemberProfile(int userid, [FromBody] FormUpdateProfile model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { message = "The form is not valid" });
+            }
+            else
+            {
+                // Define the parameter to prevent SQL Injection
+                var email = new MySqlParameter("@email", model.email);
+                var username = new MySqlParameter("@username", model.username);
+
+                // verify that the email and username is not already used
+                var results = await _context.IsEmailAndUsernameUsed
+                    .FromSqlRaw("CALL IsEmailAndUsernameUsedUserId({0}, {1}, {2})", email, username, userid)
+                    .ToListAsync();
+
+                // result?
+                if (results.Count > 0)
+                {
+                    return BadRequest(new { message = "The email or username is already being used" });
+                }
+
+                // Define the parameter to prevent SQL Injection
+                var name = new MySqlParameter("@name", model.name);
+                var zip = new MySqlParameter("@zip", model.zipcode);
+                var password = new MySqlParameter("@password", model.password);
+                var profile = new MySqlParameter("@profile", model.profile);
+
+                // add the record
+                var affectedRows = _context.Database.ExecuteSqlRaw(
+                    "CALL UpdateUser({0}, {1}, {2}, {3}, {4}, {5}, {6})", name, username, email, zip, password, profile, userid);
+
+                return Ok(new { message = "Member successfully inserted" });
+            }
+        }
         [HttpDelete(Name = "DeleteMember")]
         public async Task<ActionResult> DeleteMember(int userid)
         {

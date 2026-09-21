@@ -2,7 +2,7 @@
 
 namespace intellectualconversationAPI.Models
 {
-    public class FormRegistration
+    public class FormUpdateProfile
     {
         [Key]
         public int userid { get; set; }
