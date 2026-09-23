@@ -1,5 +1,6 @@
 ﻿using intellectualconversationAPI.Data;
 using intellectualconversationAPI.Models;
+using intellectualconversationAPI.Models.Posts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
@@ -20,15 +21,16 @@ namespace intellectualconversationforumAPI.Controllers
             _context = context;
         }
 
-        [HttpGet(Name = "GetPostsByCategory")]
-        public async Task<ActionResult<IEnumerable<GetPostsByCategory>>> GetPostsByCategory(int postcatagoryId)
+        [HttpGet(Name = "GetPostsByCategoryUser")]
+        public async Task<ActionResult<IEnumerable<GetPostsByCategoryUser>>> GetPostsByCategoryUser(int? postcatagoryId, int? userId)
         {
             // Define the parameter to prevent SQL Injection
             var postcatagoryid = new MySqlParameter("postcatagoryid", postcatagoryId);
+            var userid = new MySqlParameter("userid", userId);
 
             // MySQL utilizes the 'CALL' syntax
-            var getrecords = await _context.GetPostsByCategory
-                .FromSqlRaw("CALL GetPostsByCategory({0})", postcatagoryid)
+            var getrecords = await _context.GetPostsByCategoryUser
+                .FromSqlRaw("CALL GetPostsByCategoryUser({0}, {1})", postcatagoryid, userid)
                 .ToListAsync();
 
             if (getrecords.Count == 0)
@@ -54,7 +56,7 @@ namespace intellectualconversationforumAPI.Controllers
                 command.CommandType = CommandType.StoredProcedure;
 
                 // Add the parameter cleanly
-                command.Parameters.Add(new MySqlParameter("@postid", postId));
+                command.Parameters.Add(new MySqlParameter("@postidIn", postId));
 
                 using (var reader = await command.ExecuteReaderAsync())
                 {
@@ -63,10 +65,13 @@ namespace intellectualconversationforumAPI.Controllers
                         // Map your object manually to prevent tracking/stale data leaks
                         var record = new GetPostComments
                         {
+                            postcommentid = reader.GetInt32("postcommentid"),
                             postid = reader.GetInt32("postid"),
                             userid = reader.GetInt32("userid"),
+                            name = reader.GetString("name"),
                             username = reader.GetString("username"),
                             dateadded = reader.GetDateTime("dateadded"),
+                            catagory = reader.GetString("catagory"),
                             comment = reader.GetString("comment"),
                         };
                         getrecords.Add(record);
@@ -79,6 +84,53 @@ namespace intellectualconversationforumAPI.Controllers
 
             // return results
             return Ok(getrecords);
+        }
+
+        /******************************************************************************/
+        // posts, updates and deletes
+        /******************************************************************************/
+        [HttpPost(Name = "AddPost")]
+        public async Task<ActionResult> AddPost([FromBody] FormPostNew model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { message = "The form is not valid" });
+            }
+            else
+            {
+                // Define the parameter to prevent SQL Injection
+                var catagoryid = new MySqlParameter("@catagoryid", model.catagoryid);
+                var userid = new MySqlParameter("@userid", model.userid);
+                var post = new MySqlParameter("@post", model.post);
+
+                // add the record
+                var affectedRows = _context.Database.ExecuteSqlRaw(
+                    "CALL InsertPost({0}, {1}, {2})", catagoryid, userid, post);
+
+                return Ok(new { message = "Post successfully inserted" });
+            }
+        }
+
+        [HttpPost(Name = "AddComment")]
+        public async Task<ActionResult> AddComment(int postId, [FromBody] FormCommentNew model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { message = "The form is not valid" });
+            }
+            else
+            {
+                // Define the parameter to prevent SQL Injection                
+                var postid = new MySqlParameter("@postId", postId);
+                var userid = new MySqlParameter("@userId", model.userid);
+                var comment = new MySqlParameter("@comment", model.comment);
+
+                // add the record
+                var affectedRows = _context.Database.ExecuteSqlRaw(
+                    "CALL InsertComment({0}, {1}, {2})", postid, userid, comment);
+
+                return Ok(new { message = "Comment successfully inserted" });
+            }
         }
     }
 }

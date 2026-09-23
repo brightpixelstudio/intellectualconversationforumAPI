@@ -1,10 +1,10 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace intellectualconversationAPI.Models
+namespace intellectualconversationAPI.Models.Statsitics
 {
-    public class GetNewestMembers
-    {         
+    public class GetLatestLoginsMembers
+    {
         [Key]
         public int userid { get; set; }
         public string? username { get; set; }
@@ -12,7 +12,7 @@ namespace intellectualconversationAPI.Models
         public string? name { get; set; }
         public int zipcode { get; set; }
         public int usertypeid { get; set; }
-        public string type { get; set; }        
+        public string type { get; set; }
         public DateTime dateadded { get; set; }
         public DateTime datelastlogin { get; set; }
         public int count { get; set; }

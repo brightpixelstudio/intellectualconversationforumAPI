@@ -1,9 +1,9 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace intellectualconversationAPI.Models
+namespace intellectualconversationAPI.Models.Posts
 {
-    public class GetPostsByCategory
+    public class GetPostsByCategoryUser
     {
         [Key]
         public int postid { get; set; }        

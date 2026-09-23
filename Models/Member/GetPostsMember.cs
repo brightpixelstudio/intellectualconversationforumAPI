@@ -1,7 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace intellectualconversationAPI.Models
+namespace intellectualconversationAPI.Models.Member
 {
     public class GetPostsMember
     {         

@@ -3,6 +3,8 @@ using intellectualconversationAPI.Data;
 using intellectualconversationAPI.Models;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
+using intellectualconversationAPI.Models.Member;
+using intellectualconversationAPI.Models.Statsitics;
 
 namespace intellectualconversationforumAPI.Controllers
 {

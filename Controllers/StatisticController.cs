@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using intellectualconversationAPI.Data;
-using intellectualconversationAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using intellectualconversationAPI.Models.Statsitics;
 
 namespace intellectualconversationforumAPI.Controllers
 {
