@@ -5,7 +5,8 @@
     using intellectualconversationAPI.Models.Member;
     using intellectualconversationAPI.Models.Statsitics;
     using Microsoft.EntityFrameworkCore;
-    
+   
+
     public class AppDbContext : DbContext
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
@@ -30,6 +31,8 @@
         public DbSet<GetPostsByCategoryUser> GetPostsByCategoryUser { get; set; }
         public DbSet<GetPostComments> GetPostComments { get; set; }
         public DbSet<FormPostNew> FormPostNew { get; set; }
+        public DbSet<GetPost> GetPost { get; set; }
+        public DbSet<GetComment> GetComment { get; set; }
 
         // utilities
         public DbSet<IsEmailAndUsernameUsed> IsEmailAndUsernameUsed { get; set; }

@@ -132,5 +132,113 @@ namespace intellectualconversationforumAPI.Controllers
                 return Ok(new { message = "Comment successfully inserted" });
             }
         }
+        [HttpDelete(Name = "DeletePost")]
+        public async Task<ActionResult> DeletePost(int postid)
+        {
+            // Define the parameter to prevent SQL Injection
+            var postId = new MySqlParameter("@postidIn", postid);
+
+            // add the record
+            var affectedRows = _context.Database.ExecuteSqlRaw(
+                "CALL DeletePost({0})", postId);
+
+            return Ok(new { message = "Post successfully deleted" });
+        }
+
+        [HttpDelete(Name = "DeleteComment")]
+        public async Task<ActionResult> DeleteComment(int postcommentid)
+        {
+            // Define the parameter to prevent SQL Injection
+            var commentId = new MySqlParameter("@postcommentidIn", postcommentid);
+
+            // add the record
+            var affectedRows = _context.Database.ExecuteSqlRaw(
+                "CALL DeleteComment({0})", commentId);
+
+            return Ok(new { message = "Comment successfully deleted" });
+        }
+
+        [HttpGet(Name = "GetPost")]
+        public async Task<ActionResult<IEnumerable<GetPost>>> GetPost(int postid)
+        {
+            // Define the parameter to prevent SQL Injection
+            var postId = new MySqlParameter("@postid", postid);
+
+            // MySQL utilizes the 'CALL' syntax
+            var getpost = await _context.GetPost
+                .FromSqlRaw("CALL GetPost({0})", postId)
+                .ToListAsync();
+
+            if (getpost.Count == 0)
+                return NotFound();
+
+            // return results
+            return Ok(getpost);
+        }
+
+        [HttpPost(Name = "UpdatePost")]
+        public async Task<ActionResult> UpdatePost(int postid, [FromBody] FormUpdatePost model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { message = "The form is not valid" });
+            }
+            else
+            {
+                // Define the parameter to prevent SQL Injection
+                var postIdIn = new MySqlParameter("@postIdIn", postid);
+                var catagoryIdIn = new MySqlParameter("@catagoryIdIn", model.postcatagoryid);
+                var postIn = new MySqlParameter("@postIn", model.post);
+
+                // add the record
+                var affectedRows = _context.Database.ExecuteSqlRaw(
+                "CALL UpdatePost({0}, {1}, {2})", postIdIn, catagoryIdIn, postIn);
+
+                return Ok(new { message = "Post successfully updated" });
+            }
+        }
+
+        [HttpGet(Name = "GetComment")]
+        public async Task<ActionResult<IEnumerable<GetComment>>> GetComment(int commentid)
+        {
+            // Define the parameter to prevent SQL Injection
+            var commentId = new MySqlParameter("@commentidIn", commentid);
+
+            // MySQL utilizes the 'CALL' syntax
+            var getcomment = await _context.GetComment
+                .FromSqlRaw("CALL GetComment({0})", commentId)
+                .ToListAsync();
+
+            if (getcomment.Count == 0)
+                return NotFound();
+
+            // return results
+            return Ok(getcomment);
+        }
+
+        [HttpPost(Name = "UpdateComment")]
+        public async Task<ActionResult> UpdateComment(int commentid, [FromBody] FormUpdateComment model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { message = "The form is not valid" });
+            }
+            else
+            {
+                // Define the parameter to prevent SQL Injection
+                var commentId = new MySqlParameter("@commentIdIn", commentid);
+                var userIdIn = new MySqlParameter("@userIdIn", model.userid);
+                var commentIn = new MySqlParameter("@commentIn", model.comment);
+
+                // add the record
+                var affectedRows = _context.Database.ExecuteSqlRaw(
+                    "CALL UpdateComment({0}, {1}, {2})", commentId, userIdIn, commentIn);
+
+                return Ok(new { message = "Comment successfully updated" });
+            }
+        }
+
+
+
     }
 }
