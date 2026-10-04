@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // 1. Get the connection string
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var connectionString = builder.Configuration.GetConnectionString("AivenConnection");
 
 // 2. Register DbContext with Pomelo MySQL provider
 builder.Services.AddDbContext<AppDbContext>(options =>
