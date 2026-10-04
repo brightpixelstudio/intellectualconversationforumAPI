@@ -8,6 +8,7 @@ using System.Data;
 
 namespace intellectualconversationforumAPI.Controllers
 {
+    // Controller
     [ApiController]
     [Route("[controller]/[action]")] // Adds the method name to the URL path
     public class PostController : ControllerBase
