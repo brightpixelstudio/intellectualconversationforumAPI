@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace intellectualconversationAPI.Models.Member
 {
+    // GetCommentsMember
     public class GetCommentsMember
     {
     
