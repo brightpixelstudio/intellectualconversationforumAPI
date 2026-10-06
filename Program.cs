@@ -15,9 +15,17 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddCors(options => {
+builder.Services.AddCors(options =>
+{
     options.AddPolicy("AngularApp", policy =>
-        policy.WithOrigins("http://localhost:4200").AllowAnyMethod().AllowAnyHeader());
+    {
+        policy.WithOrigins(
+            "https://happy-dune-0ad79e30f.3.azurestaticapps.net",
+            "http://localhost:4200"
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod();
+    });
 });
 
 builder.Services.AddControllers();
