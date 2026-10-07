@@ -17,7 +17,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AngularApp", policy =>
+    options.AddPolicy("AllowAngular", policy =>
     {
         policy.WithOrigins(
             "https://happy-dune-0ad79e30f.3.azurestaticapps.net",
@@ -32,9 +32,6 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
-app.UseCors("AllowAngular"); // Place this before UseAuthorization
-app.UseCors("AngularApp");
-
 //// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -43,6 +40,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("AllowAngular"); // Place this before UseAuthorization
 
 app.UseAuthorization();
 
