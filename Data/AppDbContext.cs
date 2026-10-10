@@ -37,5 +37,6 @@
         // utilities
         public DbSet<IsEmailAndUsernameUsed> IsEmailAndUsernameUsed { get; set; }
         public DbSet<GetCatagoryList> GetCatagoryList { get; set; }
+        public DbSet<GetVerifyZipcode> GetVerifyZipcode { get; set; }
     }
 }

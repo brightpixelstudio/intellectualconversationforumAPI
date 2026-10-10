@@ -2,6 +2,7 @@
 using intellectualconversationAPI.Data;
 using intellectualconversationAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 
 namespace intellectualconversationforumAPI.Controllers
 {
@@ -32,5 +33,24 @@ namespace intellectualconversationforumAPI.Controllers
             // return results
             return Ok(getrecords);
         }
+
+        [HttpGet(Name = "GetVerifyZipcode")]
+        public async Task<ActionResult<IEnumerable<GetVerifyZipcode>>> GetVerifyZipcode(string zipcode)
+        {
+            // Define the parameter to prevent SQL Injection
+            var zipcodeIn = new MySqlParameter("@zipcodeIn", zipcode);
+
+            // MySQL utilizes the 'CALL' syntax
+            var getrecords = await _context.GetVerifyZipcode
+                .FromSqlRaw("CALL GetVerifyZipcode({0})", zipcodeIn)
+                .ToListAsync();
+
+            if (getrecords.Count == 0)
+                return NotFound();
+
+            // return results
+            return Ok(getrecords);
+        }
+        
     }
 }
