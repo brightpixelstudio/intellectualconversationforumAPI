@@ -2,7 +2,8 @@
 using System.ComponentModel.DataAnnotations;
 
 namespace intellectualconversationAPI.Models.Statsitics
-{
+{   
+    // Updates
     public class GetMostPopularPostWithComments
     {
         [Key]
