@@ -10,6 +10,7 @@ namespace intellectualconversationAPI.Models.Member
         [Key]
         public int postid { get; set; }
         public string? catagory { get; set; }
+        public int postcatagoryid { get; set; }        
         public int postcommentid { get; set; }
         public string? postshorttext { get; set; }
         public string? commentshorttext { get; set; }
