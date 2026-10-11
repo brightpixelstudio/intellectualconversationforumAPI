@@ -15,5 +15,6 @@ namespace intellectualconversationAPI.Models.Posts
         public DateTime dateadded { get; set; }
         public int count { get; set; }
         public string? post { get; set; }
+        public float rating { get; set; }
     }
 }

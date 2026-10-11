@@ -12,5 +12,6 @@ namespace intellectualconversationAPI.Models.Statsitics
         public string? catagory { get; set; }
         public string? shorttextpost { get; set; }
         public int count { get; set; }
+        public float rating { get; set; }
     }
 }

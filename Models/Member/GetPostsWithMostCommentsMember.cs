@@ -14,5 +14,5 @@ namespace intellectualconversationAPI.Models.Member
         public int count { get; set; }
         public string? shorttextpost { get; set; }
         public string? shorttextcomment { get; set; }
-    }
+        public float rating { get; set; }
 }
