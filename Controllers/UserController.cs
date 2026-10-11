@@ -237,5 +237,21 @@ namespace intellectualconversationforumAPI.Controllers
 
             return Ok(new { message = "Member successfully deleted" });
         }
+
+        [HttpPost(Name = "InsertPostUserRating")]
+        public async Task<ActionResult> InsertPostUserRating(int userid, int postid, int rating)
+        {
+
+            // Define the parameter to prevent SQL Injection
+            var userIdIn = new MySqlParameter("@userid", userid);
+            var postIdIn = new MySqlParameter("@postid", postid);
+            var ratingIn = new MySqlParameter("@rating", rating);
+
+            // add / update the record
+            var affectedRows = _context.Database.ExecuteSqlRaw(
+                "CALL InsertPostUserRating({0}, {1}, {2})", userIdIn, postIdIn, ratingIn);
+
+            return Ok(new { message = "Member successfully inserted rating" });
+        }
     }
 }
