@@ -29,7 +29,7 @@
         public DbSet<GetNewestMembers> GetNewestMembers { get; set; }
 
         // posts
-        public DbSet<GetPostsByCategoryUser> GetPostsByCategoryUser { get; set; }
+        public DbSet<GetPostsByCategoryUserRating> GetPostsByCategoryUserRating { get; set; }
         public DbSet<GetPostComments> GetPostComments { get; set; }
         public DbSet<FormPostNew> FormPostNew { get; set; }
         public DbSet<GetPost> GetPost { get; set; }

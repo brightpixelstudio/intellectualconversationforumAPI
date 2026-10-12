@@ -22,16 +22,17 @@ namespace intellectualconversationforumAPI.Controllers
             _context = context;
         }
 
-        [HttpGet(Name = "GetPostsByCategoryUser")]
-        public async Task<ActionResult<IEnumerable<GetPostsByCategoryUser>>> GetPostsByCategoryUser(int? postcatagoryId, int? userId)
+        [HttpGet(Name = "GetPostsByCategoryUserRating")]
+        public async Task<ActionResult<IEnumerable<GetPostsByCategoryUserRating>>> GetPostsByCategoryUserRating(int? postcatagoryId, int? userId, float rating)
         {
             // Define the parameter to prevent SQL Injection
             var postcatagoryid = new MySqlParameter("postcatagoryid", postcatagoryId);
             var userid = new MySqlParameter("userid", userId);
+            var ratingIn = new MySqlParameter("ratingIn", rating);
 
             // MySQL utilizes the 'CALL' syntax
-            var getrecords = await _context.GetPostsByCategoryUser
-                .FromSqlRaw("CALL GetPostsByCategoryUser({0}, {1})", postcatagoryid, userid)
+            var getrecords = await _context.GetPostsByCategoryUserRating
+                .FromSqlRaw("CALL GetPostsByCategoryUserRating({0}, {1}, {2})", postcatagoryid, userid, ratingIn)
                 .ToListAsync();
 
             if (getrecords.Count == 0)
