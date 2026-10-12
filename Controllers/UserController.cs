@@ -253,22 +253,25 @@ namespace intellectualconversationforumAPI.Controllers
             // Define the parameter to prevent SQL Injection
             var postId = new MySqlParameter("@postid", postid);
 
-            // MySQL utilizes the 'CALL' syntax
-            var result = await _context.GetPost
-                .FromSqlRaw("CALL GetPost({0})", postId)
-                .Select(p => new PostRatingResponse
-                {
-                    Postid = p.postid,
-                    AverageRating = (decimal)p.rating
-                })
-                .FirstOrDefaultAsync();
 
-            if (result == null)
+            var posts = await _context.GetPost
+                .FromSqlRaw("CALL GetPost({0})", postIdIn)
+                .ToListAsync();
+
+            // Find the post in memory
+            var post = posts.FirstOrDefault();
+
+            if (post == null)
             {
                 return NotFound(new { message = "Post not found." });
             }
 
-            return Ok(result);
+            // Return the response to Angular
+            return Ok(new PostRatingResponse
+            {
+                Postid = post.postid,
+                AverageRating = Convert.ToDecimal(post.rating)
+            });
         }
     }
 }
