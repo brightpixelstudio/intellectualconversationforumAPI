@@ -74,6 +74,7 @@ namespace intellectualconversationforumAPI.Controllers
                             username = reader.GetString("username"),
                             dateadded = reader.GetDateTime("dateadded"),
                             catagory = reader.GetString("catagory"),
+                            rating = reader.GetFloat("rating"),
                             comment = reader.GetString("comment"),
                         };
                         getrecords.Add(record);
