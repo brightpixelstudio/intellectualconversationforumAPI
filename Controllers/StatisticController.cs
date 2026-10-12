@@ -62,5 +62,20 @@ namespace intellectualconversationforumAPI.Controllers
             // return results
             return Ok(getrecords);
         }
+
+        [HttpGet(Name = "GetHighestRatingPosts")]
+        public async Task<ActionResult<IEnumerable<GetHighestRatingPosts>>> GetHighestRatingPosts()
+        {
+            // MySQL utilizes the 'CALL' syntax
+            var getrecords = await _context.GetHighestRatingPosts
+                .FromSqlRaw("CALL GetHighestRatingPosts()")
+                .ToListAsync();
+
+            if (getrecords.Count == 0)
+                return NotFound();
+
+            // return results
+            return Ok(getrecords);
+        }
     }
 }

@@ -24,6 +24,7 @@
         public DbSet<GetMostPopularCatagories> GetMostPopularCatagories { get; set; }
         public DbSet<GetMostPostsMembers> GetMostPostsMembers { get; set; }
         public DbSet<GetMostPopularPostWithComments> GetMostPopularPostWithComments { get; set; }
+        public DbSet<GetHighestRatingPosts> GetHighestRatingPosts { get; set; }        
         public DbSet<GetLatestLoginsMembers> GetLatestLoginsMembers { get; set; }
         public DbSet<GetNewestMembers> GetNewestMembers { get; set; }
 
