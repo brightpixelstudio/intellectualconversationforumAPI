@@ -23,7 +23,7 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpGet(Name = "GetPostsByCategoryUserRating")]
-        public async Task<ActionResult<IEnumerable<GetPostsByCategoryUserRating>>> GetPostsByCategoryUserRating(int? postcatagoryId, int? userId, float rating)
+        public async Task<ActionResult<IEnumerable<GetPostsByCategoryUserRating>>> GetPostsByCategoryUserRating(int? postcatagoryId, int? userId, float? rating)
         {
             // Define the parameter to prevent SQL Injection
             var postcatagoryid = new MySqlParameter("postcatagoryid", postcatagoryId);
