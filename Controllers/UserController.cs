@@ -241,7 +241,6 @@ namespace intellectualconversationforumAPI.Controllers
         [HttpPost(Name = "InsertPostUserRating")]
         public async Task<ActionResult> InsertPostUserRating(int userid, int postid, int rating)
         {
-
             // Define the parameter to prevent SQL Injection
             var userIdIn = new MySqlParameter("@userid", userid);
             var postIdIn = new MySqlParameter("@postid", postid);
@@ -251,7 +250,25 @@ namespace intellectualconversationforumAPI.Controllers
             var affectedRows = _context.Database.ExecuteSqlRaw(
                 "CALL InsertPostUserRating({0}, {1}, {2})", userIdIn, postIdIn, ratingIn);
 
-            return Ok(new { message = "Member successfully inserted rating" });
+            // Define the parameter to prevent SQL Injection
+            var postId = new MySqlParameter("@postid", postid);
+
+            // MySQL utilizes the 'CALL' syntax
+            var result = await _context.GetPost
+                .FromSqlRaw("CALL GetPost({0})", postId)
+                .Select(p => new PostRatingResponse
+                {
+                    Postid = p.postid,
+                    AverageRating = (decimal)p.rating
+                })
+                .FirstOrDefaultAsync();
+
+            if (result == null)
+            {
+                return NotFound(new { message = "Post not found." });
+            }
+
+            return Ok(result);
         }
     }
 }
