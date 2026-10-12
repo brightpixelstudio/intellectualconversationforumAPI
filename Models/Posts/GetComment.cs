@@ -14,5 +14,6 @@ namespace intellectualconversationAPI.Models.Posts
         public DateTime dateadded { get; set; }
         public string? name { get; set; }
         public string? catagory { get; set; }
+        public float rating { get; set; }
     }
 }
