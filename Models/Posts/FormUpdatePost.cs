@@ -5,7 +5,7 @@ namespace intellectualconversationAPI.Models
     public class FormUpdatePost
     {
         [Key]
-        public string? postguid { get; set; }
+        public int postid { get; set; }
 
         [Required(ErrorMessage = "Post Catagory Id is required.")]
         public int postcatagoryid { get; set; }

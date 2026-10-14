@@ -274,11 +274,11 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpPost(Name = "InsertCommentUserRating")]
-        public async Task<ActionResult> InsertCommentUserRating(string userguid, string Commentguid, int rating)
+        public async Task<ActionResult> InsertCommentUserRating(string userguid, string commentguid, int rating)
         {
             // Define the parameter to prevent SQL Injection
             var userguidIn = new MySqlParameter("@userguidIn", userguid);
-            var commentguidIn = new MySqlParameter("@commentguidIn", Commentguid);
+            var commentguidIn = new MySqlParameter("@commentguidIn", commentguid);
             var ratingIn = new MySqlParameter("@rating", rating);
 
             // add / update the record

@@ -116,7 +116,7 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpPost(Name = "AddComment")]
-        public async Task<ActionResult> AddComment(int postguid, [FromBody] FormCommentNew model)
+        public async Task<ActionResult> AddComment(string postguid, [FromBody] FormCommentNew model)
         {
             if (!ModelState.IsValid)
             {

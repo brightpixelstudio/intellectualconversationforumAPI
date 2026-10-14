@@ -5,10 +5,10 @@ namespace intellectualconversationAPI.Models
     public class FormUpdateComment
     {
         [Key]
-        public string? commentguid { get; set; }
+        public int commentguid { get; set; }
 
         [Required(ErrorMessage = "User Guid is required.")]
-        public string? userguid { get; set; }
+        public string? userguid { get; set; } 
 
         [Required(ErrorMessage = "Comment is required.")]
         [MaxLength(5000, ErrorMessage = "The comment must be less than 5000 characters long.")]
