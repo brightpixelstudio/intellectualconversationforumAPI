@@ -8,6 +8,8 @@ namespace intellectualconversationAPI.Models.Posts
         [Key]
         public int postid { get; set; }        
         public int userid { get; set; }
+        public string? postguid { get; set; }
+        public string? userguid { get; set; }
         public string? username { get; set; }
         public string? name { get; set; }
         public int postcatagoryid { get; set; }

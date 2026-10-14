@@ -7,6 +7,7 @@ namespace intellectualconversationAPI.Models.Member
     {
         [Key]
         public int userid { get; set; }
+        public string? userguid { get; set; }
         public string? name { get; set; }
     }
 }
