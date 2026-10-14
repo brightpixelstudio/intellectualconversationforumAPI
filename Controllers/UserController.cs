@@ -274,22 +274,22 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpPost(Name = "InsertCommentUserRating")]
-        public async Task<ActionResult> InsertCommentUserRating(int userid, int Commentid, int rating)
+        public async Task<ActionResult> InsertCommentUserRating(string userguid, string Commentguid, int rating)
         {
             // Define the parameter to prevent SQL Injection
-            var userIdIn = new MySqlParameter("@userid", userid);
-            var CommentIdIn = new MySqlParameter("@Commentid", Commentid);
+            var userguidIn = new MySqlParameter("@userguidIn", userguid);
+            var commentguidIn = new MySqlParameter("@commentguidIn", Commentguid);
             var ratingIn = new MySqlParameter("@rating", rating);
 
             // add / update the record
             var affectedRows = _context.Database.ExecuteSqlRaw(
-                "CALL InsertCommentUserRating({0}, {1}, {2})", userIdIn, CommentIdIn, ratingIn);
+                "CALL InsertCommentUserRating({0}, {1}, {2})", userguidIn, commentguidIn, ratingIn);
 
             // Define the parameter to prevent SQL Injection
-            var CommentId = new MySqlParameter("@commentidIn", Commentid);
+            var CommentId = new MySqlParameter("@commentidIn", commentguidIn);
 
             var comments = await _context.GetComment
-                .FromSqlRaw("CALL GetComment({0})", CommentIdIn)
+                .FromSqlRaw("CALL GetComment({0})", commentguidIn)
                 .ToListAsync();
 
             // Find the post in memory

@@ -5,11 +5,11 @@ namespace intellectualconversationAPI.Models.Posts
     public class FormCommentNew
     {
         [Key]
-        [Required(ErrorMessage = "Post ID is required.")]
-        public int postid { get; set; }
+        [Required(ErrorMessage = "Post Guid is required.")]
+        public string? postguid { get; set; }
 
-        [Required(ErrorMessage = "User ID is required.")]
-        public int userid { get; set; }
+        [Required(ErrorMessage = "User Guid is required.")]
+        public string? userguid { get; set; }
 
         [Required(ErrorMessage = "Comment is required.")]
         [MaxLength(5000, ErrorMessage = "The comment must be less than 5000 characters long.")]

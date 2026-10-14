@@ -23,17 +23,17 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpGet(Name = "GetPostsByCategoryUserRating")]
-        public async Task<ActionResult<IEnumerable<GetPostsByCategoryUserRating>>> GetPostsByCategoryUserRating(int? postcatagoryId, int? userId, float? rating, string? searchString)
+        public async Task<ActionResult<IEnumerable<GetPostsByCategoryUserRating>>> GetPostsByCategoryUserRating(int? postcatagoryId, string? userGuid, float? rating, string? searchString)
         {
             // Define the parameter to prevent SQL Injection
             var postcatagoryid = new MySqlParameter("postcatagoryid", postcatagoryId);
-            var userid = new MySqlParameter("userid", userId);
+            var guidIn = new MySqlParameter("guidIn", userGuid);
             var ratingIn = new MySqlParameter("ratingIn", rating);
             var searchStringIn = new MySqlParameter("searchStringIn", searchString);
 
             // MySQL utilizes the 'CALL' syntax
             var getrecords = await _context.GetPostsByCategoryUserRating
-                .FromSqlRaw("CALL GetPostsByCategoryUserRating({0}, {1}, {2}, {3})", postcatagoryid, userid, ratingIn, searchString)
+                .FromSqlRaw("CALL GetPostsByCategoryUserRating({0}, {1}, {2}, {3})", postcatagoryid, guidIn, ratingIn, searchString)
                 .ToListAsync();
 
             if (getrecords.Count == 0)
@@ -104,19 +104,19 @@ namespace intellectualconversationforumAPI.Controllers
             {
                 // Define the parameter to prevent SQL Injection
                 var catagoryid = new MySqlParameter("@catagoryid", model.catagoryid);
-                var userid = new MySqlParameter("@userid", model.userid);
+                var guidIn = new MySqlParameter("@guidIn", model.guid);
                 var post = new MySqlParameter("@post", model.post);
 
                 // add the record
                 var affectedRows = _context.Database.ExecuteSqlRaw(
-                    "CALL InsertPost({0}, {1}, {2})", catagoryid, userid, post);
+                    "CALL InsertPost({0}, {1}, {2})", catagoryid, guidIn, post);
 
                 return Ok(new { message = "Post successfully inserted" });
             }
         }
 
         [HttpPost(Name = "AddComment")]
-        public async Task<ActionResult> AddComment(int postId, [FromBody] FormCommentNew model)
+        public async Task<ActionResult> AddComment(int postguid, [FromBody] FormCommentNew model)
         {
             if (!ModelState.IsValid)
             {
@@ -125,13 +125,13 @@ namespace intellectualconversationforumAPI.Controllers
             else
             {
                 // Define the parameter to prevent SQL Injection                
-                var postid = new MySqlParameter("@postId", postId);
-                var userid = new MySqlParameter("@userId", model.userid);
+                var postGuidIn = new MySqlParameter("@postGuidIn", postguid);
+                var userGuidIn = new MySqlParameter("@userGuidIn", model.userguid);
                 var comment = new MySqlParameter("@comment", model.comment);
 
                 // add the record
                 var affectedRows = _context.Database.ExecuteSqlRaw(
-                    "CALL InsertComment({0}, {1}, {2})", postid, userid, comment);
+                    "CALL InsertComment({0}, {1}, {2})", postGuidIn, userGuidIn, comment);
 
                 return Ok(new { message = "Comment successfully inserted" });
             }
@@ -181,7 +181,7 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpPost(Name = "UpdatePost")]
-        public async Task<ActionResult> UpdatePost(int postid, [FromBody] FormUpdatePost model)
+        public async Task<ActionResult> UpdatePost(string postguid, [FromBody] FormUpdatePost model)
         {
             if (!ModelState.IsValid)
             {
@@ -190,27 +190,27 @@ namespace intellectualconversationforumAPI.Controllers
             else
             {
                 // Define the parameter to prevent SQL Injection
-                var postIdIn = new MySqlParameter("@postIdIn", postid);
+                var guidIn = new MySqlParameter("@guidIn", postguid);
                 var catagoryIdIn = new MySqlParameter("@catagoryIdIn", model.postcatagoryid);
                 var postIn = new MySqlParameter("@postIn", model.post);
 
                 // add the record
                 var affectedRows = _context.Database.ExecuteSqlRaw(
-                "CALL UpdatePost({0}, {1}, {2})", postIdIn, catagoryIdIn, postIn);
+                "CALL UpdatePost({0}, {1}, {2})", guidIn, catagoryIdIn, postIn);
 
                 return Ok(new { message = "Post successfully updated" });
             }
         }
 
         [HttpGet(Name = "GetComment")]
-        public async Task<ActionResult<IEnumerable<GetComment>>> GetComment(int commentid)
+        public async Task<ActionResult<IEnumerable<GetComment>>> GetComment(string commentguid)
         {
             // Define the parameter to prevent SQL Injection
-            var commentId = new MySqlParameter("@commentidIn", commentid);
+            var guid = new MySqlParameter("@guid", commentguid);
 
             // MySQL utilizes the 'CALL' syntax
             var getcomment = await _context.GetComment
-                .FromSqlRaw("CALL GetComment({0})", commentId)
+                .FromSqlRaw("CALL GetComment({0})", commentguid)
                 .ToListAsync();
 
             if (getcomment.Count == 0)
@@ -221,7 +221,7 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpPost(Name = "UpdateComment")]
-        public async Task<ActionResult> UpdateComment(int commentid, [FromBody] FormUpdateComment model)
+        public async Task<ActionResult> UpdateComment(string commentguid, [FromBody] FormUpdateComment model)
         {
             if (!ModelState.IsValid)
             {
@@ -230,13 +230,13 @@ namespace intellectualconversationforumAPI.Controllers
             else
             {
                 // Define the parameter to prevent SQL Injection
-                var commentId = new MySqlParameter("@commentIdIn", commentid);
-                var userIdIn = new MySqlParameter("@userIdIn", model.userid);
+                var commentguidIn = new MySqlParameter("@commentguidIn", commentguid);
+                var userguidIn = new MySqlParameter("@userguidIn", model.userguid);
                 var commentIn = new MySqlParameter("@commentIn", model.comment);
 
                 // add the record
                 var affectedRows = _context.Database.ExecuteSqlRaw(
-                    "CALL UpdateComment({0}, {1}, {2})", commentId, userIdIn, commentIn);
+                    "CALL UpdateComment({0}, {1}, {2})", commentguidIn, userguidIn, commentIn);
 
                 return Ok(new { message = "Comment successfully updated" });
             }
