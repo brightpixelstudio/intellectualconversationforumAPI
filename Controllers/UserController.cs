@@ -70,14 +70,14 @@ namespace intellectualconversationforumAPI.Controllers
         // Specific member 
         /******************************************************************************/
         [HttpGet(Name = "GetPostsMember")]
-        public async Task<ActionResult<IEnumerable<GetPostsMember>>> GetPostsMember(int userid)
+        public async Task<ActionResult<IEnumerable<GetPostsMember>>> GetPostsMember(string userguid)
         {
             // Define the parameter to prevent SQL Injection
-            var userId = new MySqlParameter("@userid", userid);
+            var guidIn = new MySqlParameter("@guidIn", userguid);
 
             // MySQL utilizes the 'CALL' syntax
             var getposts = await _context.GetPostsMember
-                .FromSqlRaw("CALL GetPostsMember({0})", userId)
+                .FromSqlRaw("CALL GetPostsMember({0})", guidIn)
                 .ToListAsync();
 
             // return results
@@ -85,14 +85,14 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpGet(Name = "GetCommentsMember")]
-        public async Task<ActionResult<IEnumerable<GetCommentsMember>>> GetCommentsMember(int userid)
+        public async Task<ActionResult<IEnumerable<GetCommentsMember>>> GetCommentsMember(string userguid)
         {
             // Define the parameter to prevent SQL Injection
-            var userId = new MySqlParameter("@userid", userid);
+            var guidIn = new MySqlParameter("@guidIn", userguid);
 
             // MySQL utilizes the 'CALL' syntax
             var getcomments = await _context.GetCommentsMember
-                .FromSqlRaw("CALL GetCommentsMember({0})", userId)
+                .FromSqlRaw("CALL GetCommentsMember({0})", guidIn)
                 .ToListAsync();
 
             // return results
@@ -100,14 +100,14 @@ namespace intellectualconversationforumAPI.Controllers
         }
         
         [HttpGet(Name = "GetPostsWithMostCommentsMember")]
-        public async Task<ActionResult<IEnumerable<GetPostsWithMostCommentsMember>>> GetPostsWithMostCommentsMember(int userid)
+        public async Task<ActionResult<IEnumerable<GetPostsWithMostCommentsMember>>> GetPostsWithMostCommentsMember(string userGuid)
         {
             // Define the parameter to prevent SQL Injection
-            var userId = new MySqlParameter("@userid", userid);
+            var guidIn = new MySqlParameter("@guidIn", userGuid);
 
             // MySQL utilizes the 'CALL' syntax
             var getposts = await _context.GetPostsWithMostCommentsMember
-                .FromSqlRaw("CALL GetPostsWithMostCommentsMember({0})", userId)
+                .FromSqlRaw("CALL GetPostsWithMostCommentsMember({0})", guidIn)
                 .ToListAsync();
 
             // return results
@@ -115,14 +115,14 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpGet(Name = "GetProfileMember")]
-        public async Task<ActionResult<IEnumerable<GetProfileMember>>> GetProfileMember(int userid)
+        public async Task<ActionResult<IEnumerable<GetProfileMember>>> GetProfileMember(string userGuid)
         {
             // Define the parameter to prevent SQL Injection
-            var userId = new MySqlParameter("@userid", userid);
+            var guidIn = new MySqlParameter("@guidIn", userGuid);
 
             // MySQL utilizes the 'CALL' syntax
             var getprofile = await _context.GetProfileMember
-                .FromSqlRaw("CALL GetProfileMember({0})", userId)
+                .FromSqlRaw("CALL GetProfileMember({0})", guidIn)
                 .ToListAsync();
 
             if (getprofile.Count == 0)
@@ -189,7 +189,7 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpPost(Name = "UpdateMemberProfile")]
-        public async Task<ActionResult> UpdateMemberProfile(int userid, [FromBody] FormUpdateProfile model)
+        public async Task<ActionResult> UpdateMemberProfile(string userguid, [FromBody] FormUpdateProfile model)
         {
             if (!ModelState.IsValid)
             {
@@ -203,7 +203,7 @@ namespace intellectualconversationforumAPI.Controllers
 
                 // verify that the email and username is not already used
                 var results = await _context.IsEmailAndUsernameUsed
-                    .FromSqlRaw("CALL IsEmailAndUsernameUsedUserId({0}, {1}, {2})", email, username, userid)
+                    .FromSqlRaw("CALL IsEmailAndUsernameUsedUserId({0}, {1}, {2})", email, username, userguid)
                     .ToListAsync();
 
                 // result?
@@ -220,42 +220,41 @@ namespace intellectualconversationforumAPI.Controllers
 
                 // add the record
                 var affectedRows = _context.Database.ExecuteSqlRaw(
-                    "CALL UpdateUser({0}, {1}, {2}, {3}, {4}, {5}, {6})", name, username, email, zip, password, profile, userid);
+                    "CALL UpdateUser({0}, {1}, {2}, {3}, {4}, {5}, {6})", name, username, email, zip, password, profile, userguid);
 
                 return Ok(new { message = "Member successfully inserted" });
             }
         }
         [HttpDelete(Name = "DeleteMember")]
-        public async Task<ActionResult> DeleteMember(int userid)
+        public async Task<ActionResult> DeleteMember(string  userGuid)
         {
             // Define the parameter to prevent SQL Injection
-            var userId = new MySqlParameter("@userid", userid);
+            var guidIn = new MySqlParameter("@guidIn", userGuid);
 
             // add the record
             var affectedRows = _context.Database.ExecuteSqlRaw(
-                "CALL DeleteUser({0})", userId);
+                "CALL DeleteUser({0})", guidIn);
 
             return Ok(new { message = "Member successfully deleted" });
         }
 
         [HttpPost(Name = "InsertPostUserRating")]
-        public async Task<ActionResult> InsertPostUserRating(int userid, int postid, int rating)
+        public async Task<ActionResult> InsertPostUserRating(string userguid, string postguid, int rating)
         {
             // Define the parameter to prevent SQL Injection
-            var userIdIn = new MySqlParameter("@userid", userid);
-            var postIdIn = new MySqlParameter("@postid", postid);
+            var userguidIn = new MySqlParameter("@userguidIn", userguid);
+            var postguidIn = new MySqlParameter("@postguidIn", postguid);
             var ratingIn = new MySqlParameter("@rating", rating);
 
             // add / update the record
             var affectedRows = _context.Database.ExecuteSqlRaw(
-                "CALL InsertPostUserRating({0}, {1}, {2})", userIdIn, postIdIn, ratingIn);
+                "CALL InsertPostUserRating({0}, {1}, {2})", userguidIn, postguidIn, ratingIn);
 
             // Define the parameter to prevent SQL Injection
-            var postId = new MySqlParameter("@postid", postid);
-
+            var guidIn = new MySqlParameter("@guidIn", postguid);
 
             var posts = await _context.GetPost
-                .FromSqlRaw("CALL GetPost({0})", postIdIn)
+                .FromSqlRaw("CALL GetPost({0})", guidIn)
                 .ToListAsync();
 
             // Find the post in memory

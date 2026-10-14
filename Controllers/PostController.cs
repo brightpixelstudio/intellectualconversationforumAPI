@@ -44,7 +44,7 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpGet(Name = "GetPostComments")]
-        public async Task<ActionResult<IEnumerable<GetPostComments>>> GetPostComments(int postId)
+        public async Task<ActionResult<IEnumerable<GetPostComments>>> GetPostComments(string postGuid)
         {
             var getrecords = new List<GetPostComments>();
 
@@ -59,7 +59,7 @@ namespace intellectualconversationforumAPI.Controllers
                 command.CommandType = CommandType.StoredProcedure;
 
                 // Add the parameter cleanly
-                command.Parameters.Add(new MySqlParameter("@postidIn", postId));
+                command.Parameters.Add(new MySqlParameter("@guidIn", postGuid));
 
                 using (var reader = await command.ExecuteReaderAsync())
                 {
@@ -137,40 +137,40 @@ namespace intellectualconversationforumAPI.Controllers
             }
         }
         [HttpDelete(Name = "DeletePost")]
-        public async Task<ActionResult> DeletePost(int postid)
+        public async Task<ActionResult> DeletePost(int guid)
         {
             // Define the parameter to prevent SQL Injection
-            var postId = new MySqlParameter("@postidIn", postid);
+            var guidIn = new MySqlParameter("@guidIn", guid);
 
             // add the record
             var affectedRows = _context.Database.ExecuteSqlRaw(
-                "CALL DeletePost({0})", postId);
+                "CALL DeletePost({0})", guidIn);
 
             return Ok(new { message = "Post successfully deleted" });
         }
 
         [HttpDelete(Name = "DeleteComment")]
-        public async Task<ActionResult> DeleteComment(int postcommentid)
+        public async Task<ActionResult> DeleteComment(int guid)
         {
             // Define the parameter to prevent SQL Injection
-            var commentId = new MySqlParameter("@postcommentidIn", postcommentid);
+            var guidIn = new MySqlParameter("@guidIn", guid);
 
             // add the record
             var affectedRows = _context.Database.ExecuteSqlRaw(
-                "CALL DeleteComment({0})", commentId);
+                "CALL DeleteComment({0})", guidIn);
 
             return Ok(new { message = "Comment successfully deleted" });
         }
 
         [HttpGet(Name = "GetPost")]
-        public async Task<ActionResult<IEnumerable<GetPost>>> GetPost(int postid)
+        public async Task<ActionResult<IEnumerable<GetPost>>> GetPost(string postguid)
         {
             // Define the parameter to prevent SQL Injection
-            var postId = new MySqlParameter("@postid", postid);
+            var guidIn = new MySqlParameter("@guidIn", postguid);
 
             // MySQL utilizes the 'CALL' syntax
             var getpost = await _context.GetPost
-                .FromSqlRaw("CALL GetPost({0})", postId)
+                .FromSqlRaw("CALL GetPost({0})", guidIn)
                 .ToListAsync();
 
             if (getpost.Count == 0)
