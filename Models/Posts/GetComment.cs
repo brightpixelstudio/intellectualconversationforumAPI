@@ -10,6 +10,7 @@ namespace intellectualconversationAPI.Models.Posts
         public int postcommentid { get; set; }
         public int postid { get; set; }
         public int userid { get; set; }
+        public string? userguid { get; set; }
         public string? comment{ get; set; }
         public DateTime dateadded { get; set; }
         public string? name { get; set; }
