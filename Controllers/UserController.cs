@@ -207,7 +207,7 @@ namespace intellectualconversationforumAPI.Controllers
                     .ToListAsync();
 
                 // result?
-                if (results.Count > 0)
+                if (results[0].result > 0)
                 {
                     return BadRequest(new { message = "The email or username is already being used" });
                 }

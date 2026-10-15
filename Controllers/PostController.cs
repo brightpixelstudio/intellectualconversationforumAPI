@@ -71,6 +71,9 @@ namespace intellectualconversationforumAPI.Controllers
                             postcommentid = reader.GetInt32("postcommentid"),
                             postid = reader.GetInt32("postid"),
                             userid = reader.GetInt32("userid"),
+                            commentguid = reader.GetString("commentguid"),
+                            postguid = reader.GetString("postguid"),
+                            userguid = reader.GetString("userguid"),
                             name = reader.GetString("name"),
                             username = reader.GetString("username"),
                             dateadded = reader.GetDateTime("dateadded"),
@@ -127,7 +130,7 @@ namespace intellectualconversationforumAPI.Controllers
                 // Define the parameter to prevent SQL Injection                
                 var postGuidIn = new MySqlParameter("@postGuidIn", postguid);
                 var userGuidIn = new MySqlParameter("@userGuidIn", model.userguid);
-                var comment = new MySqlParameter("@comment", model.comment);
+                var comment = new MySqlParameter("@commentIn", model.comment);
 
                 // add the record
                 var affectedRows = _context.Database.ExecuteSqlRaw(

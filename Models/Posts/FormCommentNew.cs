@@ -5,9 +5,6 @@ namespace intellectualconversationAPI.Models.Posts
     public class FormCommentNew
     {
         [Key]
-        [Required(ErrorMessage = "Post Guid is required.")]
-        public string? postguid { get; set; }
-
         [Required(ErrorMessage = "User Guid is required.")]
         public string? userguid { get; set; }
 
