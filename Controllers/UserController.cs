@@ -152,39 +152,74 @@ namespace intellectualconversationforumAPI.Controllers
         // posts, updates and deletes
         /******************************************************************************/
         [HttpPost(Name = "AddNewMember")]
-        public async Task<ActionResult> AddNewMember([FromBody] FormRegistration model)
+        public async Task<ActionResult> AddNewMember(
+    [FromForm] FormRegistration model,
+    IFormFile? profileImage)
         {
-            if (!ModelState.IsValid) {
-                return BadRequest(new { message = "The form is not valid" });
-            }
-            else {
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new { message = "The form is not valid" });
+                }
+                else
+                {
+                    // Validate the optional profile image
+                    if (profileImage != null && profileImage.Length > 0)
+                    {
+                        string[] allowedTypes =
+                        {
+                            "image/jpeg",
+                            "image/png",
+                            "image/webp"
+                        };
 
-                // Define the parameter to prevent SQL Injection
-                var email = new MySqlParameter("@email", model.email);
-                var username = new MySqlParameter("@username", model.username);
+                        if (!allowedTypes.Contains(profileImage.ContentType))
+                        {
+                            return BadRequest(new
+                            {
+                                message = "Only JPG, PNG, and WebP images are allowed."
+                            });
+                        }
 
-                // verify that the email and username is not already used
-                var results = await _context.IsEmailAndUsernameUsed
+                        if (profileImage.Length > 250 * 1024)
+                        {
+                            return BadRequest(new
+                            {
+                                message = "The profile image cannot exceed 250k."
+                            });
+                        }
+                    }
+
+                    // Define the parameter to prevent SQL Injection
+                    var email = new MySqlParameter("@email", model.email);
+                    var username = new MySqlParameter("@username", model.username);
+
+                    // verify that the email and username is not already used
+                    var results = await _context.IsEmailAndUsernameUsed
                     .FromSqlRaw("CALL IsEmailAndUsernameUsed({0}, {1})", email, username)
                     .ToListAsync();
 
-                // result?
-                if (results.Count > 0)
-                {
-                    return BadRequest(new { message = "The email or username is already being used" });
+                    // result?
+                    if (results.Count > 0)
+                    {
+                        return BadRequest(new { message = "The email or username is already being used" });
+                    }
+
+                    // Define the parameter to prevent SQL Injection
+                    var name = new MySqlParameter("@name", model.name);
+                    var zip = new MySqlParameter("@zip", model.zipcode);
+                    var password = new MySqlParameter("@password", model.password);
+                    var profile = new MySqlParameter("@profile", model.profile);
+
+                    // add the record
+                    var affectedRows = _context.Database.ExecuteSqlRaw(
+                        "CALL InsertUser({0}, {1}, {2}, {3}, {4}, {5})", name, username, email, zip, password, profile);
+
+                    // TODO: Save profileImage to secure storage and save its URL/key
+                    // in the user table.
+
+                    return Ok(new { message = "Member successfully inserted" });
                 }
-
-                // Define the parameter to prevent SQL Injection
-                var name = new MySqlParameter("@name", model.name);
-                var zip = new MySqlParameter("@zip", model.zipcode);
-                var password = new MySqlParameter("@password", model.password);
-                var profile = new MySqlParameter("@profile", model.profile);
-
-                // add the record
-                var affectedRows = _context.Database.ExecuteSqlRaw(
-                    "CALL InsertUser({0}, {1}, {2}, {3}, {4}, {5})", name, username, email, zip, password, profile);
-
-                return Ok(new { message = "Member successfully inserted" });
             }
         }
 
