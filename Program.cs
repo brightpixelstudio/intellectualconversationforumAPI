@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using intellectualconversationAPI.Data;
+using Azure.Identity;
+using Azure.Storage.Blobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +30,16 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Azure Blob Storage
+var storageAccountName =
+    builder.Configuration["AzureStorage:AccountName"]
+    ?? throw new InvalidOperationException(
+        "Azure Storage account name is missing.");
+
+builder.Services.AddSingleton(_ =>
+    new BlobServiceClient(
+        new Uri($"https://{storageAccountName}.blob.core.windows.net"),
+        new DefaultAzureCredential()));
 builder.Services.AddControllers();
 
 var app = builder.Build();

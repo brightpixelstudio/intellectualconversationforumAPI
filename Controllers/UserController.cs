@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 using intellectualconversationAPI.Models.Member;
 using intellectualconversationAPI.Models.Statsitics;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 
 namespace intellectualconversationforumAPI.Controllers
 {
@@ -14,11 +16,21 @@ namespace intellectualconversationforumAPI.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<UserController> _logger;
+        private readonly BlobServiceClient _blobServiceClient;
+        private readonly string _profileImagesContainer;
 
-        public UserController(ILogger<UserController> logger, AppDbContext context)
+        public UserController(ILogger<UserController> logger, AppDbContext context, BlobServiceClient blobServiceClient, IConfiguration configuration)
         {
             _logger = logger;
             _context = context;
+
+            // profile images
+            _blobServiceClient = blobServiceClient;
+
+            _profileImagesContainer =
+                configuration["AzureStorage:ContainerName"]
+                ?? throw new InvalidOperationException(
+                    "Profile images container is missing.");
         }
 
         [HttpGet(Name = "GetLatestLoginsMembers")]
@@ -152,9 +164,7 @@ namespace intellectualconversationforumAPI.Controllers
         // posts, updates and deletes
         /******************************************************************************/
         [HttpPost(Name = "AddNewMember")]
-        public async Task<ActionResult> AddNewMember(
-    [FromForm] FormRegistration model,
-    IFormFile? profileImage)
+        public async Task<ActionResult> AddNewMember([FromForm] FormRegistration model, IFormFile? profileImage)
         {
             {
                 if (!ModelState.IsValid)
@@ -205,15 +215,23 @@ namespace intellectualconversationforumAPI.Controllers
                         return BadRequest(new { message = "The email or username is already being used" });
                     }
 
+                    // upload profile image to blob storage
+                    string? profileImageKey = null;
+                    if (profileImage != null && profileImage.Length > 0)
+                    {
+                        profileImageKey = await UploadProfileImageAsync(profileImage);
+                    }
+
                     // Define the parameter to prevent SQL Injection
                     var name = new MySqlParameter("@name", model.name);
                     var zip = new MySqlParameter("@zip", model.zipcode);
                     var password = new MySqlParameter("@password", model.password);
                     var profile = new MySqlParameter("@profile", model.profile);
+                    var imageKey = new MySqlParameter("@profileimagekey",(object?)profileImageKey ?? DBNull.Value);
 
                     // add the record
                     var affectedRows = _context.Database.ExecuteSqlRaw(
-                        "CALL InsertUser({0}, {1}, {2}, {3}, {4}, {5})", name, username, email, zip, password, profile);
+                        "CALL InsertUser({0}, {1}, {2}, {3}, {4}, {5}, {6)", name, username, email, zip, password, profile, imageKey);
 
                     // TODO: Save profileImage to secure storage and save its URL/key
                     // in the user table.
@@ -341,6 +359,42 @@ namespace intellectualconversationforumAPI.Controllers
                 Commentid = comment.postid,
                 AverageRating = Convert.ToDecimal(comment.rating)
             });
+        }
+
+        // Helpers
+        private async Task<string> UploadProfileImageAsync(
+            IFormFile profileImage)
+        {
+            var containerClient = _blobServiceClient.GetBlobContainerClient(
+                _profileImagesContainer);
+
+            // Use a generated filename, not the user's original filename.
+            var extension = profileImage.ContentType switch
+            {
+                "image/jpeg" => ".jpg",
+                "image/png" => ".png",
+                "image/webp" => ".webp",
+                _ => throw new InvalidOperationException(
+                    "Unsupported image type.")
+            };
+
+            var blobName = $"{Guid.NewGuid():N}{extension}";
+            var blobClient = containerClient.GetBlobClient(blobName);
+
+            await using var stream = profileImage.OpenReadStream();
+
+            await blobClient.UploadAsync(
+                stream,
+                new BlobUploadOptions
+                {
+                    HttpHeaders = new BlobHttpHeaders
+                    {
+                        ContentType = profileImage.ContentType
+                    }
+                });
+
+            // Return the key to save in MySQL.
+            return blobName;
         }
     }
 }
