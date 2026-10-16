@@ -183,6 +183,24 @@ namespace intellectualconversationforumAPI.Controllers
             return Ok(getpost);
         }
 
+        [HttpGet(Name = "GetPostRatings")]
+        public async Task<ActionResult<IEnumerable<GetPostRatings>>> GetPostRatings(string postguid)
+        {
+            // Define the parameter to prevent SQL Injection
+            var postguidIn = new MySqlParameter("@postguidIn", postguid);
+
+            // MySQL utilizes the 'CALL' syntax
+            var getpostratings = await _context.GetPost
+                .FromSqlRaw("CALL GetPostRatings({0})", postguidIn)
+                .ToListAsync();
+
+            if (getpostratings.Count == 0)
+                return NotFound();
+
+            // return results
+            return Ok(getpostratings);
+        }        
+
         [HttpPost(Name = "UpdatePost")]
         public async Task<ActionResult> UpdatePost(string postguid, [FromBody] FormUpdatePost model)
         {
