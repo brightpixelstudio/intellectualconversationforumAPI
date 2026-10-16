@@ -31,6 +31,8 @@
         // posts
         public DbSet<GetPostsByCategoryUserRating> GetPostsByCategoryUserRating { get; set; }
         public DbSet<GetPostComments> GetPostComments { get; set; }
+        public DbSet<GetPostRatings> GetPostRatings { get; set; }
+        
         public DbSet<FormPostNew> FormPostNew { get; set; }
         public DbSet<GetPost> GetPost { get; set; }
         public DbSet<GetComment> GetComment { get; set; }

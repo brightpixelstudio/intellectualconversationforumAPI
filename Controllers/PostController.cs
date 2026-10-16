@@ -190,7 +190,7 @@ namespace intellectualconversationforumAPI.Controllers
             var postguidIn = new MySqlParameter("@postguidIn", postguid);
 
             // MySQL utilizes the 'CALL' syntax
-            var getpostratings = await _context.GetPost
+            var getpostratings = await _context.GetPostRatings
                 .FromSqlRaw("CALL GetPostRatings({0})", postguidIn)
                 .ToListAsync();
 
