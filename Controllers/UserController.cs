@@ -179,15 +179,16 @@ namespace intellectualconversationforumAPI.Controllers
                         string[] allowedTypes =
                         {
                             "image/jpeg",
+                            "image/jfif",
                             "image/png",
                             "image/webp"
                         };
 
-                        if (!allowedTypes.Contains(profileImage.ContentType))
+                        if (!allowedTypes.Contains(profileImage.ContentType, StringComparer.OrdinalIgnoreCase))
                         {
                             return BadRequest(new
                             {
-                                message = "Only JPG, PNG, and WebP images are allowed."
+                                message = "Only JPG, JFIF, PNG, and WebP images are allowed."
                             });
                         }
 
@@ -369,9 +370,10 @@ namespace intellectualconversationforumAPI.Controllers
                 _profileImagesContainer);
 
             // Use a generated filename, not the user's original filename.
-            var extension = profileImage.ContentType switch
+            var extension = profileImage.ContentType.ToLowerInvariant() switch
             {
                 "image/jpeg" => ".jpg",
+                "image/jfif" => ".jfif",
                 "image/png" => ".png",
                 "image/webp" => ".webp",
                 _ => throw new InvalidOperationException(
