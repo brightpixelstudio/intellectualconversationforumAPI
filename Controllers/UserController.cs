@@ -126,13 +126,13 @@ namespace intellectualconversationforumAPI.Controllers
             return Ok(getposts);
         }
 
+
         [HttpGet(Name = "GetProfileMember")]
-        public async Task<ActionResult<IEnumerable<GetProfileMember>>> GetProfileMember(string userGuid)
+        public async Task<IActionResult> GetProfileMember(string userGuid)
         {
-            // Define the parameter to prevent SQL Injection
+            // Prevent SQL injection by using a parameter.
             var guidIn = new MySqlParameter("@guidIn", userGuid);
 
-            // MySQL utilizes the 'CALL' syntax
             var getprofile = await _context.GetProfileMember
                 .FromSqlRaw("CALL GetProfileMember({0})", guidIn)
                 .ToListAsync();
@@ -140,9 +140,57 @@ namespace intellectualconversationforumAPI.Controllers
             if (getprofile.Count == 0)
                 return NotFound();
 
-            // return results
-            return Ok(getprofile);
+            var member = getprofile[0];
+
+            string? profileImage = null;
+
+            // is there a profile image?
+            if (!string.IsNullOrWhiteSpace(member.profileimagekey))
+            {
+                // Use the same container name as UploadProfileImageAsync.
+                var containerClient =
+                    _blobServiceClient.GetBlobContainerClient("profile-images");
+
+                var blobClient =
+                    containerClient.GetBlobClient(member.profileimagekey);
+
+                if (await blobClient.ExistsAsync())
+                {
+                    var download = await blobClient.DownloadStreamingAsync();
+
+                    using var memoryStream = new MemoryStream();
+
+                    await download.Value.Content.CopyToAsync(memoryStream);
+
+                    var contentType =
+                        download.Value.Details.ContentType ?? "image/jpeg";
+
+                    profileImage =
+                        $"data:{contentType};base64," +
+                        Convert.ToBase64String(memoryStream.ToArray());
+                }
+            }
+
+            return Ok(new
+            {
+                member.userid,
+                member.usertypeid,
+                member.type,
+                member.name,
+                member.username,
+                member.email,
+                member.zipcode,
+                member.count,
+                member.profile,
+                member.datelastpost,
+                member.datelastlogin,
+                member.dateadded,
+                member.blocked,
+                member.profileimagekey,
+                profileImage
+            });
         }
+
 
         [HttpGet(Name = "GetUserList")]
         public async Task<ActionResult<IEnumerable<GetUserList>>> GetUserList()
@@ -202,8 +250,8 @@ namespace intellectualconversationforumAPI.Controllers
                     }
 
                     // Define the parameter to prevent SQL Injection
-                    var email = new MySqlParameter("@email", model.email);
-                    var username = new MySqlParameter("@username", model.username);
+                    var email = new MySqlParameter("@emailIn", model.email);
+                    var username = new MySqlParameter("@usernameIn", model.username);
 
                     // verify that the email and username is not already used
                     var results = await _context.IsEmailAndUsernameUsed
@@ -224,18 +272,15 @@ namespace intellectualconversationforumAPI.Controllers
                     }
 
                     // Define the parameter to prevent SQL Injection
-                    var name = new MySqlParameter("@name", model.name);
-                    var zip = new MySqlParameter("@zip", model.zipcode);
-                    var password = new MySqlParameter("@password", model.password);
-                    var profile = new MySqlParameter("@profile", model.profile);
-                    var imageKey = new MySqlParameter("@profileimagekey",(object?)profileImageKey ?? DBNull.Value);
+                    var name = new MySqlParameter("@nameIn", model.name);
+                    var zip = new MySqlParameter("@zipIn", model.zipcode);
+                    var password = new MySqlParameter("@passwordIn", model.password);
+                    var profile = new MySqlParameter("@profileIn", (object?)model.profile ?? DBNull.Value);
+                    var imageKey = new MySqlParameter("@profileimagekeyiIn", (object?)profileImageKey ?? DBNull.Value);
 
                     // add the record
                     var affectedRows = _context.Database.ExecuteSqlRaw(
-                        "CALL InsertUser({0}, {1}, {2}, {3}, {4}, {5}, {6)", name, username, email, zip, password, profile, imageKey);
-
-                    // TODO: Save profileImage to secure storage and save its URL/key
-                    // in the user table.
+                        "CALL InsertUser({0}, {1}, {2}, {3}, {4}, {5}, {6})", name, username, email, zip, password, profile, imageKey);
 
                     return Ok(new { message = "Member successfully inserted" });
                 }

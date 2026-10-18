@@ -1,22 +1,36 @@
 using Microsoft.EntityFrameworkCore;
 using intellectualconversationAPI.Data;
-using Azure.Identity;
 using Azure.Storage.Blobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// 1. Get the connection string
-var connectionString = builder.Configuration.GetConnectionString("AivenConnection");
+// 1. Get the Aiven MySQL connection string
+var aivenConnectionString =
+    builder.Configuration.GetConnectionString("AivenConnection")
+    ?? throw new InvalidOperationException(
+        "AivenConnection connection string is missing.");
 
 // 2. Register DbContext with Pomelo MySQL provider
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+    options.UseMySql(
+        aivenConnectionString,
+        ServerVersion.AutoDetect(aivenConnectionString)));
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// 3. Get the Azure Blob Storage connection string
+var azureBlobConnectionString =
+    builder.Configuration.GetConnectionString("AzureBlobConnection")
+    ?? throw new InvalidOperationException(
+        "AzureBlobConnection connection string is missing.");
+
+// 4. Register Azure Blob Storage using the connection string
+builder.Services.AddSingleton(
+    new BlobServiceClient(azureBlobConnectionString));
+
+// 5. Register Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// 6. Configure CORS for Angular
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
@@ -30,21 +44,11 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Azure Blob Storage
-var storageAccountName =
-    builder.Configuration["AzureStorage:AccountName"]
-    ?? throw new InvalidOperationException(
-        "Azure Storage account name is missing.");
-
-builder.Services.AddSingleton(_ =>
-    new BlobServiceClient(
-        new Uri($"https://{storageAccountName}.blob.core.windows.net"),
-        new DefaultAzureCredential()));
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
-//// Configure the HTTP request pipeline.
+// 7. Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -53,7 +57,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors("AllowAngular"); // Place this before UseAuthorization
+app.UseCors("AllowAngular");
 
 app.UseAuthorization();
 

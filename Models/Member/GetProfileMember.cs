@@ -19,5 +19,7 @@ namespace intellectualconversationAPI.Models.Member
         public DateTime? datelastpost { get; set; }
         public DateTime datelastlogin { get; set; }
         public DateTime dateadded { get; set; }
+        public sbyte blocked{ get; set; }
+        public string? profileimagekey { get; set; }        
     }
 }
