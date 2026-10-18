@@ -5,6 +5,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 using System.Data;
+using Azure.Storage.Blobs;
+using Azure.Storage.Sas;
+using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 
 namespace intellectualconversationforumAPI.Controllers
 {
@@ -15,34 +19,92 @@ namespace intellectualconversationforumAPI.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<UserController> _logger;
+        private readonly BlobServiceClient _blobServiceClient;
+        private readonly string _profileImagesContainer;
 
-        public PostController(ILogger<UserController> logger, AppDbContext context)
+        public PostController(ILogger<UserController> logger, AppDbContext context, BlobServiceClient blobServiceClient, IConfiguration configuration)
         {
             _logger = logger;
             _context = context;
+            _blobServiceClient = blobServiceClient;
+
+            _profileImagesContainer =
+                configuration["AzureStorage:ContainerName"]
+                ?? throw new InvalidOperationException(
+                    "Profile images container is missing.");
+
         }
 
         [HttpGet(Name = "GetPostsByCategoryUserRating")]
-        public async Task<ActionResult<IEnumerable<GetPostsByCategoryUserRating>>> GetPostsByCategoryUserRating(int? postcatagoryId, string? userGuid, float? rating, string? searchString)
+        public async Task<ActionResult<IEnumerable<GetPostsByCategoryUserRating>>>
+            GetPostsByCategoryUserRating(
+                int? postcatagoryId,
+                string? userGuid,
+                float? rating,
+                string? searchString)
         {
-            // Define the parameter to prevent SQL Injection
-            var postcatagoryid = new MySqlParameter("postcatagoryid", postcatagoryId);
-            var guidIn = new MySqlParameter("guidIn", userGuid);
-            var ratingIn = new MySqlParameter("ratingIn", rating);
-            var searchStringIn = new MySqlParameter("searchStringIn", searchString);
+            // Define parameters
+            var postcatagoryid = new MySqlParameter(
+                "postcatagoryid", (object?)postcatagoryId ?? DBNull.Value);
 
-            // MySQL utilizes the 'CALL' syntax
+            var guidIn = new MySqlParameter(
+                "guidIn", (object?)userGuid ?? DBNull.Value);
+
+            var ratingIn = new MySqlParameter(
+                "ratingIn", (object?)rating ?? DBNull.Value);
+
+            var searchStringIn = new MySqlParameter(
+                "searchStringIn", (object?)searchString ?? DBNull.Value);
+
+            // Retrieve posts
             var getrecords = await _context.GetPostsByCategoryUserRating
-                .FromSqlRaw("CALL GetPostsByCategoryUserRating({0}, {1}, {2}, {3})", postcatagoryid, guidIn, ratingIn, searchString)
+                .FromSqlRaw(
+                    "CALL GetPostsByCategoryUserRating({0}, {1}, {2}, {3})",
+                    postcatagoryid,
+                    guidIn,
+                    ratingIn,
+                    searchStringIn)
                 .ToListAsync();
 
             if (getrecords.Count == 0)
                 return NotFound();
 
-            // return results
+            // Get the private profile images container
+            var containerClient =
+                _blobServiceClient.GetBlobContainerClient(
+                    _profileImagesContainer);
+
+            foreach (var record in getrecords)
+            {
+                record.profileimageurl = null;
+
+                if (string.IsNullOrWhiteSpace(record.profileimagekey))
+                    continue;
+
+                var blobClient =
+                    containerClient.GetBlobClient(record.profileimagekey);
+
+                // Skip missing images
+                if (!await blobClient.ExistsAsync())
+                    continue;
+
+                // Generate a read-only SAS URL valid for 30 minutes
+                var sasBuilder = new BlobSasBuilder
+                {
+                    BlobContainerName = _profileImagesContainer,
+                    BlobName = record.profileimagekey,
+                    Resource = "b",
+                    ExpiresOn = DateTimeOffset.UtcNow.AddMinutes(30)
+                };
+
+                sasBuilder.SetPermissions(BlobSasPermissions.Read);
+
+                record.profileimageurl =
+                    blobClient.GenerateSasUri(sasBuilder).ToString();
+            }
+
             return Ok(getrecords);
         }
-
         [HttpGet(Name = "GetPostComments")]
         public async Task<ActionResult<IEnumerable<GetPostComments>>> GetPostComments(string postGuid)
         {

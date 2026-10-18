@@ -12,6 +12,8 @@ namespace intellectualconversationAPI.Models.Posts
         public string? userguid { get; set; }
         public string? username { get; set; }
         public string? name { get; set; }
+        public string? profileimagekey { get; set; }
+        public string? profileimageurl { get; set; }
         public int postcatagoryid { get; set; }
         public string? catagory { get; set; }        
         public DateTime dateadded { get; set; }
