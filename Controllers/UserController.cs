@@ -191,6 +191,26 @@ namespace intellectualconversationforumAPI.Controllers
             });
         }
 
+        [HttpGet(Name = "GetProfileMemberImage")]
+        public async Task<IActionResult> GetProfileMemberImage(string userGuid)
+        {
+            // Prevent SQL injection by using a parameter.
+            var guidIn = new MySqlParameter("@guidIn", userGuid);
+
+            var getprofile = await _context.GetProfileMemberImage
+                .FromSqlRaw("CALL GetProfileMemberImage({0})", guidIn)
+                .ToListAsync();
+
+            if (getprofile.Count == 0)
+                return NotFound();
+
+            return Ok(new
+            {
+                getprofile[0].profileimagekey,
+            });
+        }
+
+
 
         [HttpGet(Name = "GetUserList")]
         public async Task<ActionResult<IEnumerable<GetUserList>>> GetUserList()
@@ -219,111 +239,185 @@ namespace intellectualconversationforumAPI.Controllers
                 {
                     return BadRequest(new { message = "The form is not valid" });
                 }
-                else
+
+                // Validate the optional profile image
+                if (profileImage != null && profileImage.Length > 0)
                 {
-                    // Validate the optional profile image
-                    if (profileImage != null && profileImage.Length > 0)
+                    string[] allowedTypes =
                     {
-                        string[] allowedTypes =
-                        {
-                            "image/jpeg",
-                            "image/jfif",
-                            "image/png",
-                            "image/webp"
-                        };
+                        "image/jpeg",
+                        "image/jfif",
+                        "image/png",
+                        "image/webp"
+                    };
 
-                        if (!allowedTypes.Contains(profileImage.ContentType, StringComparer.OrdinalIgnoreCase))
+                    if (!allowedTypes.Contains(profileImage.ContentType, StringComparer.OrdinalIgnoreCase))
+                    {
+                        return BadRequest(new
                         {
-                            return BadRequest(new
-                            {
-                                message = "Only JPG, JFIF, PNG, and WebP images are allowed."
-                            });
-                        }
-
-                        if (profileImage.Length > 250 * 1024)
-                        {
-                            return BadRequest(new
-                            {
-                                message = "The profile image cannot exceed 250k."
-                            });
-                        }
+                            message = "Only JPG, JFIF, PNG, and WebP images are allowed."
+                        });
                     }
 
-                    // Define the parameter to prevent SQL Injection
-                    var email = new MySqlParameter("@emailIn", model.email);
-                    var username = new MySqlParameter("@usernameIn", model.username);
-
-                    // verify that the email and username is not already used
-                    var results = await _context.IsEmailAndUsernameUsed
-                    .FromSqlRaw("CALL IsEmailAndUsernameUsed({0}, {1})", email, username)
-                    .ToListAsync();
-
-                    // result?
-                    if (results.Count > 0)
+                    if (profileImage.Length > 250 * 1024)
                     {
-                        return BadRequest(new { message = "The email or username is already being used" });
+                        return BadRequest(new
+                        {
+                            message = "The profile image cannot exceed 250k."
+                        });
                     }
-
-                    // upload profile image to blob storage
-                    string? profileImageKey = null;
-                    if (profileImage != null && profileImage.Length > 0)
-                    {
-                        profileImageKey = await UploadProfileImageAsync(profileImage);
-                    }
-
-                    // Define the parameter to prevent SQL Injection
-                    var name = new MySqlParameter("@nameIn", model.name);
-                    var zip = new MySqlParameter("@zipIn", model.zipcode);
-                    var password = new MySqlParameter("@passwordIn", model.password);
-                    var profile = new MySqlParameter("@profileIn", (object?)model.profile ?? DBNull.Value);
-                    var imageKey = new MySqlParameter("@profileimagekeyiIn", (object?)profileImageKey ?? DBNull.Value);
-
-                    // add the record
-                    var affectedRows = _context.Database.ExecuteSqlRaw(
-                        "CALL InsertUser({0}, {1}, {2}, {3}, {4}, {5}, {6})", name, username, email, zip, password, profile, imageKey);
-
-                    return Ok(new { message = "Member successfully inserted" });
                 }
+
+                // Define the parameter to prevent SQL Injection
+                var email = new MySqlParameter("@emailIn", model.email);
+                var username = new MySqlParameter("@usernameIn", model.username);
+
+                // verify that the email and username is not already used
+                var results = await _context.IsEmailAndUsernameUsed
+                .FromSqlRaw("CALL IsEmailAndUsernameUsed({0}, {1})", email, username)
+                .ToListAsync();
+
+                // result?
+                if (results.Count > 0)
+                {
+                    return BadRequest(new { message = "The email or username is already being used" });
+                }
+
+                // upload profile image to blob storage
+                string? profileImageKey = null;
+                if (profileImage != null && profileImage.Length > 0)
+                {
+                    profileImageKey = await UploadProfileImageAsync(profileImage);
+                }
+
+                // Define the parameter to prevent SQL Injection
+                var name = new MySqlParameter("@nameIn", model.name);
+                var zip = new MySqlParameter("@zipIn", model.zipcode);
+                var password = new MySqlParameter("@passwordIn", model.password);
+                var profile = new MySqlParameter("@profileIn", (object?)model.profile ?? DBNull.Value);
+                var imageKey = new MySqlParameter("@profileimagekeyiIn", (object?)profileImageKey ?? DBNull.Value);
+
+                // add the record
+                var affectedRows = _context.Database.ExecuteSqlRaw(
+                    "CALL InsertUser({0}, {1}, {2}, {3}, {4}, {5}, {6})", name, username, email, zip, password, profile, imageKey);
+
+                return Ok(new { message = "Member successfully inserted" });
             }
         }
 
         [HttpPost(Name = "UpdateMemberProfile")]
-        public async Task<ActionResult> UpdateMemberProfile(string userguid, [FromBody] FormUpdateProfile model)
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult> UpdateMemberProfile([FromQuery] string userguid, [FromForm] FormUpdateProfile model)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(new { message = "The form is not valid" });
             }
-            else
+
+            // 1. Get the current profile and existing image key.
+            var currentProfile = await _context.GetProfileMemberImage
+                .FromSqlRaw("CALL GetProfileMemberImage({0})", userguid)
+                .ToListAsync();
+
+            if (currentProfile.Count == 0)
             {
-                // Define the parameter to prevent SQL Injection
-                var email = new MySqlParameter("@email", model.email);
-                var username = new MySqlParameter("@username", model.username);
+                return NotFound(new { message = "Member profile not found." });
+            }
 
-                // verify that the email and username is not already used
-                var results = await _context.IsEmailAndUsernameUsed
-                    .FromSqlRaw("CALL IsEmailAndUsernameUsedUserId({0}, {1}, {2})", email, username, userguid)
-                    .ToListAsync();
+            string? oldProfileImageKey = currentProfile[0].profileimagekey;
 
-                // result?
-                if (results[0].result > 0)
+            // Keep the existing image unless a new one is uploaded.
+            string? profileImageKey = oldProfileImageKey;
+
+            // 2. Validate the optional new profile image.
+            var profileImage = model.profileImage;
+
+            if (profileImage != null && profileImage.Length > 0)
+            {
+                string[] allowedTypes =
                 {
-                    return BadRequest(new { message = "The email or username is already being used" });
+                    "image/jpeg",
+                    "image/jfif",
+                    "image/png",
+                    "image/webp"
+                };
+
+                if (!allowedTypes.Contains(
+                    profileImage.ContentType,
+                    StringComparer.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new
+                    {
+                        message = "Only JPG, JFIF, PNG, and WebP images are allowed."
+                    });
                 }
 
-                // Define the parameter to prevent SQL Injection
-                var name = new MySqlParameter("@name", model.name);
-                var zip = new MySqlParameter("@zip", model.zipcode);
-                var password = new MySqlParameter("@password", model.password);
-                var profile = new MySqlParameter("@profile", model.profile);
-
-                // add the record
-                var affectedRows = _context.Database.ExecuteSqlRaw(
-                    "CALL UpdateUser({0}, {1}, {2}, {3}, {4}, {5}, {6})", name, username, email, zip, password, profile, userguid);
-
-                return Ok(new { message = "Member successfully inserted" });
+                if (profileImage.Length > 250 * 1024)
+                {
+                    return BadRequest(new
+                    {
+                        message = "The profile image cannot exceed 250 KB."
+                    });
+                }
             }
+
+            // 3. Check whether the email or username is already used.
+            var email = new MySqlParameter("@email", model.email);
+            var username = new MySqlParameter("@username", model.username);
+
+            var uniquenessResults = await _context.IsEmailAndUsernameUsed
+                .FromSqlRaw(
+                    "CALL IsEmailAndUsernameUsedUserId({0}, {1}, {2})",
+                    email, username, userguid)
+                .ToListAsync();
+
+            if (uniquenessResults.Count == 0)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Unable to verify the email and username."
+                });
+            }
+
+            if (uniquenessResults[0].result > 0)
+            {
+                return BadRequest(new
+                {
+                    message = "The email or username is already being used."
+                });
+            }
+
+            // 4. Upload the new image only when one was supplied.
+            if (profileImage != null && profileImage.Length > 0)
+            {
+                profileImageKey = await UploadProfileImageAsync(profileImage);
+            }
+
+            // 5. Update the member, including the retained or new image key.
+            var name = new MySqlParameter("@name", model.name);
+            var zip = new MySqlParameter("@zip", model.zipcode);
+            var password = new MySqlParameter("@password", model.password);
+            var profile = new MySqlParameter("@profile", model.profile);
+            var imageKey = new MySqlParameter(
+                "@profileimagekeyiIn",
+                (object?)profileImageKey ?? DBNull.Value);
+
+            await _context.Database.ExecuteSqlRawAsync(
+                "CALL UpdateUser({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7})",
+                name, username, email, zip, password, profile, userguid, imageKey);
+
+            // 6. Delete the old blob only after the database update succeeds.
+            if (profileImage != null &&
+                profileImage.Length > 0 &&
+                !string.IsNullOrWhiteSpace(oldProfileImageKey) &&
+                oldProfileImageKey != profileImageKey)
+            {
+                await DeleteProfileImageAsync(oldProfileImageKey);
+            }
+
+            return Ok(new { message = "Member profile successfully updated." });
         }
+
         [HttpDelete(Name = "DeleteMember")]
         public async Task<ActionResult> DeleteMember(string  userGuid)
         {
@@ -442,6 +536,18 @@ namespace intellectualconversationforumAPI.Controllers
 
             // Return the key to save in MySQL.
             return blobName;
+        }
+        private async Task DeleteProfileImageAsync(string? profileImageKey)
+        {
+            if (string.IsNullOrWhiteSpace(profileImageKey))
+                return;
+
+            var containerClient = _blobServiceClient
+                .GetBlobContainerClient("profileimages");
+
+            var blobClient = containerClient.GetBlobClient(profileImageKey);
+
+            await blobClient.DeleteIfExistsAsync();
         }
     }
 }

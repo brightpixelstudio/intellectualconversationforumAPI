@@ -28,5 +28,6 @@ namespace intellectualconversationAPI.Models
         [MinLength(20, ErrorMessage = "The profile must be at least 30 characters long.")]
         [MaxLength(1000, ErrorMessage = "The profile must be less than 1000 characters long.")]
         public string? profile { get; set; }
+        public IFormFile? profileImage { get; set; }
     }
 }

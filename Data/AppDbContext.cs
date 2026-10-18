@@ -16,6 +16,8 @@
         public DbSet<GetCommentsMember> GetCommentsMember { get; set; }
         public DbSet<GetPostsWithMostCommentsMember> GetPostsWithMostCommentsMember { get; set; }
         public DbSet<GetProfileMember> GetProfileMember { get; set; }
+        public DbSet<GetProfileMemberImage> GetProfileMemberImage { get; set; }
+        
         public DbSet<GetAllProfileMembers> GetAllProfileMembers { get; set; }
         public DbSet<FormRegistration> FormRegistration { get; set; }
         public DbSet<GetUserList> GetUserList { get; set; }        
