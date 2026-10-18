@@ -419,18 +419,47 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpDelete(Name = "DeleteMember")]
-        public async Task<ActionResult> DeleteMember(string  userGuid)
+        public async Task<ActionResult> DeleteMember(string userGuid)
         {
-            // Define the parameter to prevent SQL Injection
+            // 1. Get the member's profile image information.
+            var currentProfile = await _context.GetProfileMemberImage
+                .FromSqlRaw("CALL GetProfileMemberImage({0})", userGuid)
+                .ToListAsync();
+
+            if (currentProfile.Count == 0)
+            {
+                return NotFound(new
+                {
+                    message = "Member profile not found."
+                });
+            }
+
+            // 2. Get the profile image key.
+            var profileImageKey = currentProfile[0].profileimagekey;
+
+            // 3. Delete the profile image from Azure Blob Storage.
+            if (!string.IsNullOrWhiteSpace(profileImageKey))
+            {
+                var containerClient = _blobServiceClient
+                    .GetBlobContainerClient("profile-images");
+
+                var blobClient = containerClient
+                    .GetBlobClient(profileImageKey);
+
+                await blobClient.DeleteIfExistsAsync();
+            }
+
+            // 4. Delete the member and related database records.
             var guidIn = new MySqlParameter("@guidIn", userGuid);
 
-            // add the record
-            var affectedRows = _context.Database.ExecuteSqlRaw(
+            await _context.Database.ExecuteSqlRawAsync(
                 "CALL DeleteUser({0})", guidIn);
 
-            return Ok(new { message = "Member successfully deleted" });
+            return Ok(new
+            {
+                message = "Member successfully deleted"
+            });
         }
-
         [HttpPost(Name = "InsertPostUserRating")]
         public async Task<ActionResult> InsertPostUserRating(string userguid, string postguid, int rating)
         {
