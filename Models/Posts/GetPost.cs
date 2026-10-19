@@ -18,6 +18,8 @@ namespace intellectualconversationAPI.Models.Posts
         public float rating { get; set; }
         public DateTime dateadded { get; set; }
         public sbyte commentsclosed { get; set; }
+        public string? profileimagekey { get; set; }
+        public string? profileimageurl { get; set; }
 
     }
 }

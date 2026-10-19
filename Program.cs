@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using intellectualconversationAPI.Data;
+using intellectualconversationAPI.Services;
 using Azure.Storage.Blobs;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,6 +46,7 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddScoped<ProfileImageService>(); 
 builder.Services.AddControllers();
 
 var app = builder.Build();

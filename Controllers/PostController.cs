@@ -1,14 +1,13 @@
 ﻿using intellectualconversationAPI.Data;
 using intellectualconversationAPI.Models;
 using intellectualconversationAPI.Models.Posts;
+using intellectualconversationAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 using System.Data;
 using Azure.Storage.Blobs;
 using Azure.Storage.Sas;
-using Microsoft.EntityFrameworkCore;
-using MySqlConnector;
 
 namespace intellectualconversationforumAPI.Controllers
 {
@@ -21,12 +20,14 @@ namespace intellectualconversationforumAPI.Controllers
         private readonly ILogger<UserController> _logger;
         private readonly BlobServiceClient _blobServiceClient;
         private readonly string _profileImagesContainer;
+        private readonly ProfileImageService _profileImageService;
 
-        public PostController(ILogger<UserController> logger, AppDbContext context, BlobServiceClient blobServiceClient, IConfiguration configuration)
+        public PostController(ILogger<UserController> logger, AppDbContext context, BlobServiceClient blobServiceClient, IConfiguration configuration, ProfileImageService profileImageService)
         {
             _logger = logger;
             _context = context;
             _blobServiceClient = blobServiceClient;
+            _profileImageService = profileImageService;
 
             _profileImagesContainer =
                 configuration["AzureStorage:ContainerName"]
@@ -74,34 +75,10 @@ namespace intellectualconversationforumAPI.Controllers
                 _blobServiceClient.GetBlobContainerClient(
                     _profileImagesContainer);
 
-            foreach (var record in getrecords)
-            {
-                record.profileimageurl = null;
-
-                if (string.IsNullOrWhiteSpace(record.profileimagekey))
-                    continue;
-
-                var blobClient =
-                    containerClient.GetBlobClient(record.profileimagekey);
-
-                // Skip missing images
-                if (!await blobClient.ExistsAsync())
-                    continue;
-
-                // Generate a read-only SAS URL valid for 30 minutes
-                var sasBuilder = new BlobSasBuilder
-                {
-                    BlobContainerName = _profileImagesContainer,
-                    BlobName = record.profileimagekey,
-                    Resource = "b",
-                    ExpiresOn = DateTimeOffset.UtcNow.AddMinutes(30)
-                };
-
-                sasBuilder.SetPermissions(BlobSasPermissions.Read);
-
-                record.profileimageurl =
-                    blobClient.GenerateSasUri(sasBuilder).ToString();
-            }
+            await _profileImageService.PopulateProfileImageUrlsAsync(
+                getrecords,
+                record => record.profileimagekey,
+                (record, url) => record.profileimageurl = url);
 
             return Ok(getrecords);
         }
@@ -240,6 +217,12 @@ namespace intellectualconversationforumAPI.Controllers
 
             if (getpost.Count == 0)
                 return NotFound();
+
+            // Generate Azure Blob Storage profile image URLs
+            await _profileImageService.PopulateProfileImageUrlsAsync(
+                getpost,
+                record => record.profileimagekey,
+                (record, url) => record.profileimageurl = url);
 
             // return results
             return Ok(getpost);
