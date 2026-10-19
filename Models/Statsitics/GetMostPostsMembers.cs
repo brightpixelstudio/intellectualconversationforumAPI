@@ -7,6 +7,7 @@ namespace intellectualconversationAPI.Models.Statsitics
     {         
         [Key]
         public int userid { get; set; }
+        public string? postguid { get; set; }
         public string? userguid { get; set; }
         public string? name { get; set; }
         public string? username { get; set; }
@@ -16,5 +17,9 @@ namespace intellectualconversationAPI.Models.Statsitics
         public DateTime dateadded { get; set; }
         public DateTime datelastlogin { get; set; }
         public int count { get; set; }
+        public sbyte blocked{ get; set; }
+        public string? profileimagekey { get; set; }
+        public string? profileimageurl { get; set; }
+
     }
 }
