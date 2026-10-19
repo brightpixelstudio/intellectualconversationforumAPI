@@ -7,7 +7,6 @@ namespace intellectualconversationAPI.Models.Statsitics
     {         
         [Key]
         public int userid { get; set; }
-        public string? postguid { get; set; }
         public string? userguid { get; set; }
         public string? name { get; set; }
         public string? username { get; set; }

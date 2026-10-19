@@ -9,6 +9,7 @@ namespace intellectualconversationAPI.Models.Statsitics
         [Key]
         public int postid { get; set; }
         public string? postguid { get; set; }
+        public string? userguid { get; set; }
         public int userid { get; set; }
         public int postcatagoryid { get; set; }
         public string? catagory { get; set; }
