@@ -20,5 +20,4 @@ namespace intellectualconversationAPI.Models.Statsitics
         public string? profileimagekey { get; set; }
         public string? profileimageurl { get; set; }
     }
-    }
 }
