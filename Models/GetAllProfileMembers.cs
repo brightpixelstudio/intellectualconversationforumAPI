@@ -21,5 +21,7 @@ namespace intellectualconversationAPI.Models
         public DateTime datelastlogin { get; set; }
         public DateTime dateadded { get; set; }
         public bool blocked { get; set; }
+        public string? profileimagekey { get; set; }
+        public string? profileimageurl { get; set; }
     }
 }

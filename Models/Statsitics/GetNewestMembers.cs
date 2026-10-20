@@ -19,5 +19,7 @@ namespace intellectualconversationAPI.Models.Statsitics
         public int count { get; set; }
         public string? profile { get; set; }
         public bool blocked { get; set; }
+        public string? profileimagekey { get; set; }
+        public string? profileimageurl { get; set; }
     }
 }

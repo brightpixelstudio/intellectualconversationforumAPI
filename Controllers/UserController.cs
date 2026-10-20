@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 using intellectualconversationAPI.Models.Member;
 using intellectualconversationAPI.Models.Statsitics;
+using intellectualconversationAPI.Services;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 
@@ -18,14 +19,15 @@ namespace intellectualconversationforumAPI.Controllers
         private readonly ILogger<UserController> _logger;
         private readonly BlobServiceClient _blobServiceClient;
         private readonly string _profileImagesContainer;
+        private readonly ProfileImageService _profileImageService;
 
-        public UserController(ILogger<UserController> logger, AppDbContext context, BlobServiceClient blobServiceClient, IConfiguration configuration)
+        public UserController(ILogger<UserController> logger, AppDbContext context, BlobServiceClient blobServiceClient, IConfiguration configuration, ProfileImageService profileImageService)
         {
             _logger = logger;
             _context = context;
 
-            // profile images
             _blobServiceClient = blobServiceClient;
+            _profileImageService = profileImageService;
 
             _profileImagesContainer =
                 configuration["AzureStorage:ContainerName"]
@@ -44,6 +46,17 @@ namespace intellectualconversationforumAPI.Controllers
             if (getusers.Count == 0)
                 return NotFound();
 
+            // Get the private profile images container
+            var containerClient =
+                _blobServiceClient.GetBlobContainerClient(
+                    _profileImagesContainer);
+
+            await _profileImageService.PopulateProfileImageUrlsAsync(
+                getusers,
+                record => record.profileimagekey,
+                (record, url) => record.profileimageurl = url);
+
+
             // return results
             return Ok(getusers);
         }
@@ -59,6 +72,16 @@ namespace intellectualconversationforumAPI.Controllers
             if (getusers.Count == 0)
                 return NotFound();
 
+            // Get the private profile images container
+            var containerClient =
+                _blobServiceClient.GetBlobContainerClient(
+                    _profileImagesContainer);
+
+            await _profileImageService.PopulateProfileImageUrlsAsync(
+                getusers,
+                record => record.profileimagekey,
+                (record, url) => record.profileimageurl = url);
+
             // return results
             return Ok(getusers);
         }
@@ -73,6 +96,16 @@ namespace intellectualconversationforumAPI.Controllers
 
             if (getprofiles.Count == 0)
                 return NotFound();
+
+            // Get the private profile images container
+            var containerClient =
+                _blobServiceClient.GetBlobContainerClient(
+                    _profileImagesContainer);
+
+            await _profileImageService.PopulateProfileImageUrlsAsync(
+                getprofiles,
+                record => record.profileimagekey,
+                (record, url) => record.profileimageurl = url);
 
             // return results
             return Ok(getprofiles);

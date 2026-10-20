@@ -58,6 +58,16 @@ namespace intellectualconversationforumAPI.Controllers
             if (getrecords.Count == 0)
                 return NotFound();
 
+            // Get the private profile images container
+            var containerClient =
+                _blobServiceClient.GetBlobContainerClient(
+                    _profileImagesContainer);
+
+            await _profileImageService.PopulateProfileImageUrlsAsync(
+                getrecords,
+                record => record.profileimagekey,
+                (record, url) => record.profileimageurl = url);
+
             // return results
             return Ok(getrecords);
         }
