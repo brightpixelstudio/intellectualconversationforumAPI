@@ -113,7 +113,10 @@ namespace intellectualconversationforumAPI.Controllers
                             catagory = reader.GetString("catagory"),
                             rating = reader.GetFloat("rating"),
                             comment = reader.GetString("comment"),
-                            commentprofileimagekey = reader.GetString("commentprofileimagekey"),
+                            commentprofileimagekey =
+                                reader.IsDBNull(reader.GetOrdinal("commentprofileimagekey"))
+                                    ? null
+                                    : reader.GetString("commentprofileimagekey"),
                             commentprofileimageurl = ""
                         };
                         getrecords.Add(record);
