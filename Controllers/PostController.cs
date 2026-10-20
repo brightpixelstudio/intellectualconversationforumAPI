@@ -22,11 +22,10 @@ namespace intellectualconversationforumAPI.Controllers
         private readonly string _profileImagesContainer;
         private readonly ProfileImageService _profileImageService;
 
-        public PostController(ILogger<UserController> logger, AppDbContext context, BlobServiceClient blobServiceClient, IConfiguration configuration, ProfileImageService profileImageService)
+        public PostController(ILogger<UserController> logger, AppDbContext context, IConfiguration configuration, ProfileImageService profileImageService)
         {
             _logger = logger;
             _context = context;
-            _blobServiceClient = blobServiceClient;
             _profileImageService = profileImageService;
 
             _profileImagesContainer =
@@ -69,11 +68,6 @@ namespace intellectualconversationforumAPI.Controllers
 
             if (getrecords.Count == 0)
                 return NotFound();
-
-            // Get the private profile images container
-            var containerClient =
-                _blobServiceClient.GetBlobContainerClient(
-                    _profileImagesContainer);
 
             await _profileImageService.PopulateProfileImageUrlsAsync(
                 getrecords,
@@ -119,6 +113,8 @@ namespace intellectualconversationforumAPI.Controllers
                             catagory = reader.GetString("catagory"),
                             rating = reader.GetFloat("rating"),
                             comment = reader.GetString("comment"),
+                            commentprofileimagekey = reader.GetString("commentprofileimagekey"),
+                            commentprofileimageurl = ""
                         };
                         getrecords.Add(record);
                     }
@@ -127,6 +123,11 @@ namespace intellectualconversationforumAPI.Controllers
 
             if (getrecords.Count == 0)
                 return NotFound();
+
+            await _profileImageService.PopulateProfileImageUrlsAsync(
+                getrecords,
+                record => record.commentprofileimagekey,
+                (record, url) => record.commentprofileimageurl = url);
 
             // return results
             return Ok(getrecords);
