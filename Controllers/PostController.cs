@@ -529,24 +529,104 @@ namespace intellectualconversationforumAPI.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(new { message = "The form is not valid" });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "The form is not valid"
+                });
             }
-            else
+
+            var connection = (MySqlConnection)
+                _context.Database.GetDbConnection();
+
+            bool openedConnection = false;
+
+            try
             {
+                if (connection.State != ConnectionState.Open)
+                {
+                    await connection.OpenAsync();
+                    openedConnection = true;
+                }
+
+                await using var command = new MySqlCommand(
+                    "UpdateComment", connection);
+
+                command.CommandType = CommandType.StoredProcedure;
+
                 // Define the parameter to prevent SQL Injection
-                var commentguidIn = new MySqlParameter("@commentguidIn", commentguid);
-                var userguidIn = new MySqlParameter("@userguidIn", model.userguid);
-                var commentIn = new MySqlParameter("@commentIn", model.comment);
+                command.Parameters.AddWithValue("@commentguidIn", commentguid);
+                command.Parameters.AddWithValue("@userguidIn", model.userguid);
+                command.Parameters.AddWithValue("@commentIn", model.comment);
 
-                // add the record
-                var affectedRows = _context.Database.ExecuteSqlRaw(
-                    "CALL UpdateComment({0}, {1}, {2})", commentguidIn, userguidIn, commentIn);
+                var result = new MySqlParameter("@resultIn", MySqlDbType.Int32)
+                {
+                    Direction = ParameterDirection.Output
+                };
 
-                return Ok(new { message = "Comment successfully updated" });
+                command.Parameters.Add(result);
+
+                await command.ExecuteNonQueryAsync();
+
+                int resultCode = Convert.ToInt32(result.Value);
+
+                if (resultCode == 0)
+                {
+                    return Conflict(new
+                    {
+                        success = false,
+                        message = "You have already posted this comment text."
+                    });
+                }
+
+                if (resultCode == 0)
+                {
+                    return Conflict(new
+                    {
+                        success = false,
+                        message = "You have already posted this comment text."
+                    });
+                }
+
+                if (resultCode == -1)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "The user could not be found."
+                    });
+                }
+
+                if (resultCode != 1)
+                {
+                    return StatusCode(500, new
+                    {
+                        success = false,
+                        message = "Unexpected result updating comment."
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Comment successfully updated"
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "An error occurred while updating the comment."
+                });
+            }
+            finally
+            {
+                if (openedConnection)
+                {
+                    await connection.CloseAsync();
+                }
             }
         }
-
-
-
     }
 }
