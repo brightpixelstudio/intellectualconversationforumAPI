@@ -141,20 +141,99 @@ namespace intellectualconversationforumAPI.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(new { message = "The form is not valid" });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "The form is not valid"
+                });
             }
-            else
+
+            var connection = (MySqlConnection)
+                _context.Database.GetDbConnection();
+
+            bool openedConnection = false;
+
+            try
             {
-                // Define the parameter to prevent SQL Injection
-                var catagoryid = new MySqlParameter("@catagoryid", model.catagoryid);
-                var guidIn = new MySqlParameter("@guidIn", model.guid);
-                var post = new MySqlParameter("@post", model.post);
+                if (connection.State != ConnectionState.Open)
+                {
+                    await connection.OpenAsync();
+                    openedConnection = true;
+                }
 
-                // add the record
-                var affectedRows = _context.Database.ExecuteSqlRaw(
-                    "CALL InsertPost({0}, {1}, {2})", catagoryid, guidIn, post);
+                await using var command = new MySqlCommand(
+                    "InsertPost", connection);
 
-                return Ok(new { message = "Post successfully inserted" });
+                command.CommandType = CommandType.StoredProcedure;
+
+                command.Parameters.AddWithValue(
+                    "@catagoryIdIn", model.catagoryid);
+
+                command.Parameters.AddWithValue(
+                    "@guidIn", model.guid);
+
+                command.Parameters.AddWithValue(
+                    "@postIn", model.post);
+
+                var result = new MySqlParameter(
+                    "@resultIn", MySqlDbType.Int32)
+                {
+                    Direction = ParameterDirection.Output
+                };
+
+                command.Parameters.Add(result);
+
+                await command.ExecuteNonQueryAsync();
+
+                int resultCode = Convert.ToInt32(result.Value);
+
+                if (resultCode == 0)
+                {
+                    return Conflict(new
+                    {
+                        success = false,
+                        message = "You have already posted this text."
+                    });
+                }
+
+                if (resultCode == -1)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "The user could not be found."
+                    });
+                }
+
+                if (resultCode != 1)
+                {
+                    return StatusCode(500, new
+                    {
+                        success = false,
+                        message = "Unexpected result inserting post."
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Post successfully inserted"
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "An error occurred while inserting the post."
+                });
+            }
+            finally
+            {
+                if (openedConnection)
+                {
+                    await connection.CloseAsync();
+                }
             }
         }
 
