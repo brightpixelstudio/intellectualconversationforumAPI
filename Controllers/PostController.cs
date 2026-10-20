@@ -244,22 +244,97 @@ namespace intellectualconversationforumAPI.Controllers
             {
                 return BadRequest(new { message = "The form is not valid" });
             }
-            else
+
+            var connection = (MySqlConnection)
+            _context.Database.GetDbConnection();
+
+            bool openedConnection = false;
+
+            try
             {
-                // Define the parameter to prevent SQL Injection                
-                var postGuidIn = new MySqlParameter("@postGuidIn", postguid);
-                var userGuidIn = new MySqlParameter("@userGuidIn", model.userguid);
-                var comment = new MySqlParameter("@commentIn", model.comment);
+                if (connection.State != ConnectionState.Open)
+                {
+                    await connection.OpenAsync();
+                    openedConnection = true;
+                }
 
-                // add the record
-                var affectedRows = _context.Database.ExecuteSqlRaw(
-                    "CALL InsertComment({0}, {1}, {2})", postGuidIn, userGuidIn, comment);
+                await using var command = new MySqlCommand(
+                    "InsertComment", connection);
 
-                return Ok(new { message = "Comment successfully inserted" });
+                command.CommandType = CommandType.StoredProcedure;
+
+                command.Parameters.AddWithValue(
+                    "@postGuidIn", postguid);
+
+                command.Parameters.AddWithValue(
+                    "@userGuidIn", model.userguid);
+
+                command.Parameters.AddWithValue(
+                    "@commentIn", model.comment);
+
+                var result = new MySqlParameter(
+                    "@resultIn", MySqlDbType.Int32)
+                {
+                    Direction = ParameterDirection.Output
+                };
+
+                command.Parameters.Add(result);
+
+                await command.ExecuteNonQueryAsync();
+
+                int resultCode = Convert.ToInt32(result.Value);
+
+                if (resultCode == 0)
+                {
+                    return Conflict(new
+                    {
+                        success = false,
+                        message = "You have already posted this comment."
+                    });
+                }
+
+                if (resultCode == -1)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "The user could not be found."
+                    });
+                }
+
+                if (resultCode != 1)
+                {
+                    return StatusCode(500, new
+                    {
+                        success = false,
+                        message = "Unexpected result inserting comment."
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Comment successfully inserted"
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "An error occurred while inserting the comment."
+                });
+            }
+            finally
+            {
+                if (openedConnection)
+                {
+                    await connection.CloseAsync();
+                }
             }
         }
         [HttpDelete(Name = "DeletePost")]
-        public async Task<ActionResult> DeletePost(int guid)
+        public async Task<ActionResult> DeletePost(string guid)
         {
             // Define the parameter to prevent SQL Injection
             var guidIn = new MySqlParameter("@guidIn", guid);
@@ -272,7 +347,7 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpDelete(Name = "DeleteComment")]
-        public async Task<ActionResult> DeleteComment(int guid)
+        public async Task<ActionResult> DeleteComment(string guid)
         {
             // Define the parameter to prevent SQL Injection
             var guidIn = new MySqlParameter("@guidIn", guid);
