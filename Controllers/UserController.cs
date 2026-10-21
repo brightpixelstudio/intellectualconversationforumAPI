@@ -8,6 +8,8 @@ using intellectualconversationAPI.Models.Statsitics;
 using intellectualconversationAPI.Services;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure;
+using Azure.AI.ContentSafety;
 
 namespace intellectualconversationforumAPI.Controllers
 {
@@ -20,14 +22,16 @@ namespace intellectualconversationforumAPI.Controllers
         private readonly BlobServiceClient _blobServiceClient;
         private readonly string _profileImagesContainer;
         private readonly ProfileImageService _profileImageService;
+        private readonly IProfileImageSafetyService _profileImageSafetyService;
 
-        public UserController(ILogger<UserController> logger, AppDbContext context, BlobServiceClient blobServiceClient, IConfiguration configuration, ProfileImageService profileImageService)
+        public UserController(ILogger<UserController> logger, AppDbContext context, BlobServiceClient blobServiceClient, IConfiguration configuration, ProfileImageService profileImageService, IProfileImageSafetyService profileImageSafetyService)
         {
             _logger = logger;
             _context = context;
 
             _blobServiceClient = blobServiceClient;
             _profileImageService = profileImageService;
+            _profileImageSafetyService = profileImageSafetyService;
 
             _profileImagesContainer =
                 configuration["AzureStorage:ContainerName"]
@@ -259,83 +263,136 @@ namespace intellectualconversationforumAPI.Controllers
             // return results
             return Ok(getUsers);
         }
-        
+
 
         /******************************************************************************/
         // posts, updates and deletes
         /******************************************************************************/
+
         [HttpPost(Name = "AddNewMember")]
-        public async Task<ActionResult> AddNewMember([FromForm] FormRegistration model, IFormFile? profileImage)
+        public async Task<ActionResult> AddNewMember(
+            [FromForm] FormRegistration model,
+            IFormFile? profileImage)
         {
+            if (!ModelState.IsValid)
             {
-                if (!ModelState.IsValid)
+                return BadRequest(new
                 {
-                    return BadRequest(new { message = "The form is not valid" });
+                    message = "The form is not valid"
+                });
+            }
+
+            // Validate the optional profile image
+            if (profileImage != null && profileImage.Length > 0)
+            {
+                string[] allowedTypes =
+                {
+            "image/jpeg",
+            "image/jfif",
+            "image/png",
+            "image/webp"
+        };
+
+                if (!allowedTypes.Contains(
+                    profileImage.ContentType,
+                    StringComparer.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new
+                    {
+                        message = "Only JPG, JFIF, PNG, and WebP images are allowed."
+                    });
                 }
 
-                // Validate the optional profile image
-                if (profileImage != null && profileImage.Length > 0)
+                if (profileImage.Length > 250 * 1024)
                 {
-                    string[] allowedTypes =
+                    return BadRequest(new
                     {
-                        "image/jpeg",
-                        "image/jfif",
-                        "image/png",
-                        "image/webp"
-                    };
+                        message = "The profile image cannot exceed 250k."
+                    });
+                }
 
-                    if (!allowedTypes.Contains(profileImage.ContentType, StringComparer.OrdinalIgnoreCase))
+                // Scan the profile image using Azure AI Content Safety
+                try
+                {
+                    int sexualSeverity =
+                        await _profileImageSafetyService.ScanProfileImageAsync(
+                            profileImage);
+
+                    // Reject images with sexual-content severity 4 or 6
+                    if (sexualSeverity >= 4)
                     {
                         return BadRequest(new
                         {
-                            message = "Only JPG, JFIF, PNG, and WebP images are allowed."
-                        });
-                    }
-
-                    if (profileImage.Length > 250 * 1024)
-                    {
-                        return BadRequest(new
-                        {
-                            message = "The profile image cannot exceed 250k."
+                            message =
+                                "This profile picture contains prohibited sexual content. Please choose another image."
                         });
                     }
                 }
+                catch (RequestFailedException)
+                {
+                    // Do not allow an image to bypass safety scanning
+                    return StatusCode(503, new
+                    {
+                        message =
+                            "Image safety scanning is temporarily unavailable. Please try again later."
+                    });
+                }
+                catch (InvalidOperationException)
+                {
+                    return StatusCode(503, new
+                    {
+                        message =
+                            "Image safety scanning is not configured or could not return a result."
+                    });
+                }
+            }
 
-                // Define the parameter to prevent SQL Injection
-                var email = new MySqlParameter("@emailIn", model.email);
-                var username = new MySqlParameter("@usernameIn", model.username);
+            // Check whether the email or username is already used
+            var email = new MySqlParameter("@emailIn", model.email);
+            var username = new MySqlParameter("@usernameIn", model.username);
 
-                // verify that the email and username is not already used
-                var results = await _context.IsEmailAndUsernameUsed
-                .FromSqlRaw("CALL IsEmailAndUsernameUsed({0}, {1})", email, username)
+            var results = await _context.IsEmailAndUsernameUsed
+                .FromSqlRaw(
+                    "CALL IsEmailAndUsernameUsed({0}, {1})",
+                    email, username)
                 .ToListAsync();
 
-                // result?
-                if (results.Count > 0)
+            if (results.Count > 0)
+            {
+                return BadRequest(new
                 {
-                    return BadRequest(new { message = "The email or username is already being used" });
-                }
-
-                // upload profile image to blob storage
-                string? profileImageKey = null;
-                if (profileImage != null && profileImage.Length > 0)
-                {
-                    profileImageKey = await UploadProfileImageAsync(profileImage);
-                }
-
-                // Define the parameter to prevent SQL Injection
-                var name = new MySqlParameter("@nameIn", model.name);
-                var zip = new MySqlParameter("@zipIn", model.zipcode);
-                var password = new MySqlParameter("@passwordIn", model.password);
-                var profile = new MySqlParameter("@profileIn", (object?)model.profile ?? DBNull.Value);
-                var imageKey = new MySqlParameter("@profileimagekeyiIn", (object?)profileImageKey ?? DBNull.Value);
-
-                // add the record
-                var affectedRows = _context.Database.ExecuteSqlRaw(
-                    "CALL InsertUser({0}, {1}, {2}, {3}, {4}, {5}, {6})", name, username, email, zip, password, profile, imageKey);
-
-                return Ok(new { message = "Member successfully inserted" });
+                    message = "The email or username is already being used"
+                });
             }
+
+            // Upload the approved profile image to Blob Storage
+            string? profileImageKey = null;
+
+            if (profileImage != null && profileImage.Length > 0)
+            {
+                profileImageKey = await UploadProfileImageAsync(profileImage);
+            }
+
+            // Define the parameters for the stored procedure
+            var name = new MySqlParameter("@nameIn", model.name);
+            var zip = new MySqlParameter("@zipIn", model.zipcode);
+            var password = new MySqlParameter("@passwordIn", model.password);
+            var profile = new MySqlParameter(
+                "@profileIn",
+                (object?)model.profile ?? DBNull.Value);
+            var imageKey = new MySqlParameter(
+                "@profileimagekeyiIn",
+                (object?)profileImageKey ?? DBNull.Value);
+
+            // Insert the new member
+            await _context.Database.ExecuteSqlRawAsync(
+                "CALL InsertUser({0}, {1}, {2}, {3}, {4}, {5}, {6})",
+                name, username, email, zip, password, profile, imageKey);
+
+            return Ok(new
+            {
+                message = "Member successfully inserted"
+            });
         }
 
         [HttpPost(Name = "UpdateMemberProfile")]

@@ -46,7 +46,12 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddScoped<ProfileImageService>(); 
+// 6. Image service
+builder.Services.AddScoped<ProfileImageService>();
+
+// 7. Image safetycontent 
+builder.Services.AddScoped<IProfileImageSafetyService, ProfileImageSafetyService>();
+
 builder.Services.AddControllers();
 
 var app = builder.Build();
