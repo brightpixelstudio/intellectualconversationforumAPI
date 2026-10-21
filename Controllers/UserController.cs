@@ -287,11 +287,11 @@ namespace intellectualconversationforumAPI.Controllers
             {
                 string[] allowedTypes =
                 {
-            "image/jpeg",
-            "image/jfif",
-            "image/png",
-            "image/webp"
-        };
+                    "image/jpeg",
+                    "image/jfif",
+                    "image/png",
+                    "image/webp"
+                };
 
                 if (!allowedTypes.Contains(
                     profileImage.ContentType,
@@ -377,9 +377,7 @@ namespace intellectualconversationforumAPI.Controllers
             var name = new MySqlParameter("@nameIn", model.name);
             var zip = new MySqlParameter("@zipIn", model.zipcode);
             var password = new MySqlParameter("@passwordIn", model.password);
-            var profile = new MySqlParameter(
-                "@profileIn",
-                (object?)model.profile ?? DBNull.Value);
+            var profile = new MySqlParameter("@profileIn", (object?)model.profile ?? DBNull.Value);
             var imageKey = new MySqlParameter(
                 "@profileimagekeyiIn",
                 (object?)profileImageKey ?? DBNull.Value);
@@ -449,9 +447,43 @@ namespace intellectualconversationforumAPI.Controllers
                         message = "The profile image cannot exceed 250 KB."
                     });
                 }
+                // Scan the profile image using Azure AI Content Safety
+                try
+                {
+                    int sexualSeverity =
+                        await _profileImageSafetyService.ScanProfileImageAsync(
+                            profileImage);
+
+                    // Reject images with sexual-content severity 4 or 6
+                    if (sexualSeverity >= 4)
+                    {
+                        return BadRequest(new
+                        {
+                            message =
+                                "This profile picture contains prohibited sexual content. Please choose another image."
+                        });
+                    }
+                }
+                catch (RequestFailedException)
+                {
+                    // Do not allow an image to bypass safety scanning
+                    return StatusCode(503, new
+                    {
+                        message =
+                            "Image safety scanning is temporarily unavailable. Please try again later."
+                    });
+                }
+                catch (InvalidOperationException)
+                {
+                    return StatusCode(503, new
+                    {
+                        message =
+                            "Image safety scanning is not configured or could not return a result."
+                    });
+                }
             }
 
-            // 3. Check whether the email or username is already used.
+            // Check whether the email or username is already used.
             var email = new MySqlParameter("@email", model.email);
             var username = new MySqlParameter("@username", model.username);
 
@@ -483,7 +515,7 @@ namespace intellectualconversationforumAPI.Controllers
                 profileImageKey = await UploadProfileImageAsync(profileImage);
             }
 
-            // 5. Update the member, including the retained or new image key.
+            // Update the member, including the retained or new image key.
             var name = new MySqlParameter("@name", model.name);
             var zip = new MySqlParameter("@zip", model.zipcode);
             var password = new MySqlParameter("@password", model.password);
@@ -496,7 +528,7 @@ namespace intellectualconversationforumAPI.Controllers
                 "CALL UpdateUser({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7})",
                 name, username, email, zip, password, profile, userguid, imageKey);
 
-            // 6. Delete the old blob only after the database update succeeds.
+            // Delete the old blob only after the database update succeeds.
             if (profileImage != null &&
                 profileImage.Length > 0 &&
                 !string.IsNullOrWhiteSpace(oldProfileImageKey) &&
@@ -511,7 +543,7 @@ namespace intellectualconversationforumAPI.Controllers
         [HttpDelete(Name = "DeleteMember")]
         public async Task<ActionResult> DeleteMember(string userGuid)
         {
-            // 1. Get the member's profile image information.
+            // Get the member's profile image information.
             var currentProfile = await _context.GetProfileMemberImage
                 .FromSqlRaw("CALL GetProfileMemberImage({0})", userGuid)
                 .ToListAsync();
@@ -524,10 +556,10 @@ namespace intellectualconversationforumAPI.Controllers
                 });
             }
 
-            // 2. Get the profile image key.
+            // Get the profile image key.
             var profileImageKey = currentProfile[0].profileimagekey;
 
-            // 3. Delete the profile image from Azure Blob Storage.
+            // Delete the profile image from Azure Blob Storage.
             if (!string.IsNullOrWhiteSpace(profileImageKey))
             {
                 var containerClient = _blobServiceClient
@@ -539,7 +571,7 @@ namespace intellectualconversationforumAPI.Controllers
                 await blobClient.DeleteIfExistsAsync();
             }
 
-            // 4. Delete the member and related database records.
+            // Delete the member and related database records.
             var guidIn = new MySqlParameter("@guidIn", userGuid);
 
             await _context.Database.ExecuteSqlRawAsync(
