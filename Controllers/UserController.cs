@@ -23,8 +23,9 @@ namespace intellectualconversationforumAPI.Controllers
         private readonly string _profileImagesContainer;
         private readonly ProfileImageService _profileImageService;
         private readonly IProfileImageSafetyService _profileImageSafetyService;
+        private readonly PasswordService _passwordService;
 
-        public UserController(ILogger<UserController> logger, AppDbContext context, BlobServiceClient blobServiceClient, IConfiguration configuration, ProfileImageService profileImageService, IProfileImageSafetyService profileImageSafetyService)
+        public UserController(ILogger<UserController> logger, AppDbContext context, BlobServiceClient blobServiceClient, IConfiguration configuration, ProfileImageService profileImageService, IProfileImageSafetyService profileImageSafetyService, PasswordService passwordService)
         {
             _logger = logger;
             _context = context;
@@ -32,6 +33,7 @@ namespace intellectualconversationforumAPI.Controllers
             _blobServiceClient = blobServiceClient;
             _profileImageService = profileImageService;
             _profileImageSafetyService = profileImageSafetyService;
+            _passwordService = passwordService;
 
             _profileImagesContainer =
                 configuration["AzureStorage:ContainerName"]
@@ -376,7 +378,10 @@ namespace intellectualconversationforumAPI.Controllers
             // Define the parameters for the stored procedure
             var name = new MySqlParameter("@nameIn", model.name);
             var zip = new MySqlParameter("@zipIn", model.zipcode);
-            var password = new MySqlParameter("@passwordIn", model.password);
+            var hashedPassword = _passwordService.HashPassword(model.password);
+            var password = new MySqlParameter(
+                "@passwordIn",
+                hashedPassword); 
             var profile = new MySqlParameter("@profileIn", (object?)model.profile ?? DBNull.Value);
             var imageKey = new MySqlParameter(
                 "@profileimagekeyiIn",
