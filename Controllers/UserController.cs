@@ -149,7 +149,37 @@ namespace intellectualconversationforumAPI.Controllers
             // return results
             return Ok(getcomments);
         }
-        
+
+        [HttpGet(Name = "GetCommentRatingsMember")]
+        public async Task<ActionResult<IEnumerable<GetCommentRatingsMember>>> GetCommentRatingsMember(string userguid)
+        {
+            // Define the parameter to prevent SQL Injection
+            var guidIn = new MySqlParameter("@guidIn", userguid);
+
+            // MySQL utilizes the 'CALL' syntax
+            var getcomments = await _context.GetCommentsMember
+                .FromSqlRaw("CALL GetCommentRatingsMember({0})", guidIn)
+                .ToListAsync();
+
+            // return results
+            return Ok(getcomments);
+        }
+
+        [HttpGet(Name = "GetPostRatingsMember")]
+        public async Task<ActionResult<IEnumerable<GetPostRatingsMember>>> GetPostRatingsMember(string userguid)
+        {
+            // Define the parameter to prevent SQL Injection
+            var guidIn = new MySqlParameter("@guidIn", userguid);
+
+            // MySQL utilizes the 'CALL' syntax
+            var getcomments = await _context.GetCommentsMember
+                .FromSqlRaw("CALL GetPostRatingsMember({0})", guidIn)
+                .ToListAsync();
+
+            // return results
+            return Ok(getcomments);
+        }
+
         [HttpGet(Name = "GetPostsWithMostCommentsMember")]
         public async Task<ActionResult<IEnumerable<GetPostsWithMostCommentsMember>>> GetPostsWithMostCommentsMember(string userGuid)
         {

@@ -14,6 +14,8 @@
         // users
         public DbSet<GetPostsMember> GetPostsMember { get; set; }
         public DbSet<GetCommentsMember> GetCommentsMember { get; set; }
+        public DbSet<GetPostRatingsMember> GetPostRatingsMember { get; set; }
+        public DbSet<GetCommentRatingsMember> GetCommentRatingsMember { get; set; }
         public DbSet<GetPostsWithMostCommentsMember> GetPostsWithMostCommentsMember { get; set; }
         public DbSet<GetProfileMember> GetProfileMember { get; set; }
         public DbSet<GetProfileMemberImage> GetProfileMemberImage { get; set; }        
