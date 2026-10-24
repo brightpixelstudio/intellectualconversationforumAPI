@@ -157,7 +157,7 @@ namespace intellectualconversationforumAPI.Controllers
             var guidIn = new MySqlParameter("@guidIn", userguid);
 
             // MySQL utilizes the 'CALL' syntax
-            var getcomments = await _context.GetCommentsMember
+            var getcomments = await _context.GetCommentRatingsMember
                 .FromSqlRaw("CALL GetCommentRatingsMember({0})", guidIn)
                 .ToListAsync();
 
@@ -172,7 +172,7 @@ namespace intellectualconversationforumAPI.Controllers
             var guidIn = new MySqlParameter("@guidIn", userguid);
 
             // MySQL utilizes the 'CALL' syntax
-            var getcomments = await _context.GetCommentsMember
+            var getcomments = await _context.GetPostRatingsMember
                 .FromSqlRaw("CALL GetPostRatingsMember({0})", guidIn)
                 .ToListAsync();
 
