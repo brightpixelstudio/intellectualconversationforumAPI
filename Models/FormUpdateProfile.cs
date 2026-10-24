@@ -21,8 +21,6 @@ namespace intellectualconversationAPI.Models
 
         [Required(ErrorMessage = "Zipcode is required.")]
         public int zipcode { get; set; }
-        [Required(ErrorMessage = "Password is required.")]
-        public string? password { get; set; }
 
         [Required(ErrorMessage = "Profile is required.")]
         [MinLength(20, ErrorMessage = "The profile must be at least 30 characters long.")]

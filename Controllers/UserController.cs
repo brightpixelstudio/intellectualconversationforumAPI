@@ -523,15 +523,14 @@ namespace intellectualconversationforumAPI.Controllers
             // Update the member, including the retained or new image key.
             var name = new MySqlParameter("@name", model.name);
             var zip = new MySqlParameter("@zip", model.zipcode);
-            var password = new MySqlParameter("@password", model.password);
             var profile = new MySqlParameter("@profile", model.profile);
             var imageKey = new MySqlParameter(
                 "@profileimagekeyiIn",
                 (object?)profileImageKey ?? DBNull.Value);
 
             await _context.Database.ExecuteSqlRawAsync(
-                "CALL UpdateUser({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7})",
-                name, username, email, zip, password, profile, userguid, imageKey);
+                "CALL UpdateUser({0}, {1}, {2}, {3}, {4}, {5}, {6})",
+                name, username, email, zip, profile, userguid, imageKey);
 
             // Delete the old blob only after the database update succeeds.
             if (profileImage != null &&
