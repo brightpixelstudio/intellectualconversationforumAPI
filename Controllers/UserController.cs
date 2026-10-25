@@ -144,6 +144,7 @@ namespace intellectualconversationforumAPI.Controllers
             // MySQL utilizes the 'CALL' syntax
             var getcomments = await _context.GetCommentsMember
                 .FromSqlRaw("CALL GetCommentsMember({0})", guidIn)
+                .AsNoTracking()
                 .ToListAsync();
 
             // return results
