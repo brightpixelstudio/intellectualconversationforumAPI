@@ -520,6 +520,12 @@ namespace intellectualconversationforumAPI.Controllers
             if (getcomment.Count == 0)
                 return NotFound();
 
+            // Generate Azure Blob Storage profile image URLs
+            await _profileImageService.PopulateProfileImageUrlsAsync(
+                getcomment,
+                record => record.profileimagekey,
+                (record, url) => record.profileimageurl = url);
+            
             // return results
             return Ok(getcomment);
         }

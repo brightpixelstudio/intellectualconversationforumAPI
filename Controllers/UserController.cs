@@ -52,11 +52,6 @@ namespace intellectualconversationforumAPI.Controllers
             if (getusers.Count == 0)
                 return NotFound();
 
-            // Get the private profile images container
-            var containerClient =
-                _blobServiceClient.GetBlobContainerClient(
-                    _profileImagesContainer);
-
             await _profileImageService.PopulateProfileImageUrlsAsync(
                 getusers,
                 record => record.profileimagekey,
@@ -78,11 +73,6 @@ namespace intellectualconversationforumAPI.Controllers
             if (getusers.Count == 0)
                 return NotFound();
 
-            // Get the private profile images container
-            var containerClient =
-                _blobServiceClient.GetBlobContainerClient(
-                    _profileImagesContainer);
-
             await _profileImageService.PopulateProfileImageUrlsAsync(
                 getusers,
                 record => record.profileimagekey,
@@ -102,11 +92,6 @@ namespace intellectualconversationforumAPI.Controllers
 
             if (getprofiles.Count == 0)
                 return NotFound();
-
-            // Get the private profile images container
-            var containerClient =
-                _blobServiceClient.GetBlobContainerClient(
-                    _profileImagesContainer);
 
             await _profileImageService.PopulateProfileImageUrlsAsync(
                 getprofiles,
@@ -211,11 +196,6 @@ namespace intellectualconversationforumAPI.Controllers
                 return NotFound();
 
             var member = getprofile[0];
-
-            // Get the private profile images container
-            var containerClient =
-                _blobServiceClient.GetBlobContainerClient(
-                    _profileImagesContainer);
 
             await _profileImageService.PopulateProfileImageUrlsAsync(
                 new List<GetProfileMember> { member },
