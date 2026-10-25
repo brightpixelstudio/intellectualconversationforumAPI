@@ -212,34 +212,15 @@ namespace intellectualconversationforumAPI.Controllers
 
             var member = getprofile[0];
 
-            string? profileImage = null;
+            // Get the private profile images container
+            var containerClient =
+                _blobServiceClient.GetBlobContainerClient(
+                    _profileImagesContainer);
 
-            // is there a profile image?
-            if (!string.IsNullOrWhiteSpace(member.profileimagekey))
-            {
-                // Use the same container name as UploadProfileImageAsync.
-                var containerClient =
-                    _blobServiceClient.GetBlobContainerClient("profile-images");
-
-                var blobClient =
-                    containerClient.GetBlobClient(member.profileimagekey);
-
-                if (await blobClient.ExistsAsync())
-                {
-                    var download = await blobClient.DownloadStreamingAsync();
-
-                    using var memoryStream = new MemoryStream();
-
-                    await download.Value.Content.CopyToAsync(memoryStream);
-
-                    var contentType =
-                        download.Value.Details.ContentType ?? "image/jpeg";
-
-                    profileImage =
-                        $"data:{contentType};base64," +
-                        Convert.ToBase64String(memoryStream.ToArray());
-                }
-            }
+            await _profileImageService.PopulateProfileImageUrlsAsync(
+                new List<GetProfileMember> { member },
+                record => record.profileimagekey,
+                (record, url) => record.profileimageurl = url);
 
             return Ok(new
             {
@@ -257,7 +238,7 @@ namespace intellectualconversationforumAPI.Controllers
                 member.dateadded,
                 member.blocked,
                 member.profileimagekey,
-                profileImage
+                profileimageurl = member.profileimageurl
             });
         }
 
