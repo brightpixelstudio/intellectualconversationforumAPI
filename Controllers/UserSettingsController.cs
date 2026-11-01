@@ -71,19 +71,9 @@ namespace intellectualconversationforumAPI.Controllers
         // Updates, inserts, deletes
         //////////////////////////////////////////////////
         [HttpPost(Name = "UpdateUserSettings")]
-        public async Task<ActionResult> UpdateUserSettings(string userguid, [FromBody] FormUpdateUserSettings model)
+        public async Task<ActionResult> UpdateUserSettings(string userguid, int showUnrated, float minPostRating, int addNewUsers, int addNewCatagories)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "The form is not valid"
-                });
-            }
-
-            var connection = (MySqlConnection)
-                _context.Database.GetDbConnection();
+            var connection = (MySqlConnection) _context.Database.GetDbConnection();
 
             bool openedConnection = false;
 
@@ -102,10 +92,10 @@ namespace intellectualconversationforumAPI.Controllers
 
                 // Define the parameter to prevent SQL Injection
                 command.Parameters.AddWithValue("@userguidIn", userguid);
-                command.Parameters.AddWithValue("@minpostratingIn", model.minpostrating);
-                command.Parameters.AddWithValue("@showunratedIn", model.showunrated);
-                command.Parameters.AddWithValue("@addnewusersIn", model.addnewusers);
-                command.Parameters.AddWithValue("@addnewcatagoriesIn", model.addnewcatagories);
+                command.Parameters.AddWithValue("@minpostratingIn", minPostRating);
+                command.Parameters.AddWithValue("@showunratedIn", showUnrated);
+                command.Parameters.AddWithValue("@addnewusersIn", addNewUsers);
+                command.Parameters.AddWithValue("@addnewcatagoriesIn", addNewCatagories);
 
                 await command.ExecuteNonQueryAsync();
 
