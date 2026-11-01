@@ -24,6 +24,12 @@
         public DbSet<GetUserList> GetUserList { get; set; }
         public DbSet<UserForLogin> UserForLogin { get; set; }
 
+        // users settings
+        public DbSet<GetUserSettings> GetUserSettings { get; set; }
+        public DbSet<GetUserSettingsCatagories> GetUserSettingsCatagories { get; set; }
+        public DbSet<GetUserSettingsUser> GetUserSettingsUser { get; set; }
+
+
         // statistics
         public DbSet<GetMostPopularCatagories> GetMostPopularCatagories { get; set; }
         public DbSet<GetMostPostsMembers> GetMostPostsMembers { get; set; }

@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 using System.Data;
 using Azure.Storage.Blobs;
-using Azure.Storage.Sas;
 
 namespace intellectualconversationforumAPI.Controllers
 {
