@@ -87,7 +87,7 @@ namespace intellectualconversationforumAPI.Controllers
 
                 await using var command = new MySqlCommand(
                     "UpdateUserSettings", connection);
-
+                  
                 command.CommandType = CommandType.StoredProcedure;
 
                 // Define the parameter to prevent SQL Injection
@@ -122,11 +122,25 @@ namespace intellectualconversationforumAPI.Controllers
             }
         }
 
-        [HttpPost(Name = "UpdateUserSettingsCategories")]
-        public async Task<ActionResult> UpdateUserSettingsCategories(string userguid, int catagory, string action)
-        {
-            var connection = (MySqlConnection) _context.Database.GetDbConnection();
+        [HttpPost]
+        public async Task<ActionResult> updateUserSettingsCatagories(
+            [FromBody] UpdateUserSettingsCategoriesRequest request)
+        { 
+            // validate
+            if (string.IsNullOrWhiteSpace(request.guid) ||
+                request.categories == null ||
+                request.categories.Any(c =>
+                    c.postcatagoryid <= 0 ||
+                    (c.selected != 0 && c.selected != 1)))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid category settings submitted."
+                });
+            }
 
+            var connection = (MySqlConnection)_context.Database.GetDbConnection();
             bool openedConnection = false;
 
             try
@@ -139,23 +153,43 @@ namespace intellectualconversationforumAPI.Controllers
 
                 await using var command = new MySqlCommand("UpdateUserSettingsCategories", connection);
                 command.CommandType = CommandType.StoredProcedure;
-
-                // Define the parameter to prevent SQL Injection
-                command.Parameters.AddWithValue("@guidIn", userguid);
-                command.Parameters.AddWithValue("@postCatagoryIdIn", catagory);
-                command.Parameters.AddWithValue("@actionIn", action);
+                
+                // parameters
+                command.Parameters.AddWithValue("@guidIn", request.guid);
+                command.Parameters.Add("@categoriesIn", MySqlDbType.JSON).Value = System.Text.Json.JsonSerializer.Serialize(request.categories);
                 var result = new MySqlParameter("@resultOut", MySqlDbType.Int32)
                 {
                     Direction = ParameterDirection.Output
                 };
+
                 command.Parameters.Add(result);
 
                 await command.ExecuteNonQueryAsync();
 
+                int resultCode = Convert.ToInt32(result.Value);
+
+                if (resultCode == -1)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "User not found."
+                    });
+                }
+
+                if (resultCode != 1)
+                {
+                    return StatusCode(500, new
+                    {
+                        success = false,
+                        message = "An error occurred while updating categories."
+                    });
+                }
+
                 return Ok(new
                 {
                     success = true,
-                    message = "Update User Settings Categories successfully updated"
+                    message = "User category settings successfully updated."
                 });
             }
             catch (Exception)
@@ -163,7 +197,7 @@ namespace intellectualconversationforumAPI.Controllers
                 return StatusCode(500, new
                 {
                     success = false,
-                    message = "An error occurred while updating the User Settings Categories."
+                    message = "An error occurred while updating categories."
                 });
             }
             finally
@@ -174,7 +208,6 @@ namespace intellectualconversationforumAPI.Controllers
                 }
             }
         }
-
         [HttpPost(Name = "UpdateUserSettingsMembers")]
         public async Task<ActionResult> UpdateUserSettingsMembers(string userguid, string selectedUserGuid, string action)
         {
