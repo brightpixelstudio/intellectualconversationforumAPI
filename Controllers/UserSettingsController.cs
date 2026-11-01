@@ -208,11 +208,26 @@ namespace intellectualconversationforumAPI.Controllers
                 }
             }
         }
-        [HttpPost(Name = "UpdateUserSettingsMembers")]
-        public async Task<ActionResult> UpdateUserSettingsMembers(string userguid, string selectedUserGuid, string action)
-        {
-            var connection = (MySqlConnection) _context.Database.GetDbConnection();
 
+        [HttpPost(Name = "UpdateUserSettingsMembers")]
+        public async Task<ActionResult> updateUserSettingsMembers(
+            [FromBody] UpdateUserSettingsUsersRequest request)
+        {
+            // validate
+            if (string.IsNullOrWhiteSpace(request.guid) ||
+                request.users == null ||
+                request.users.Any(c =>
+                    c.userid <= 0 ||
+                    (c.selected != 0 && c.selected != 1)))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid user settings submitted."
+                });
+            }
+
+            var connection = (MySqlConnection)_context.Database.GetDbConnection();
             bool openedConnection = false;
 
             try
@@ -226,22 +241,42 @@ namespace intellectualconversationforumAPI.Controllers
                 await using var command = new MySqlCommand("UpdateUserSettingsMembers", connection);
                 command.CommandType = CommandType.StoredProcedure;
 
-                // Define the parameter to prevent SQL Injection
-                command.Parameters.AddWithValue("@guidIn", userguid);
-                command.Parameters.AddWithValue("@selectedUserGuidIn", selectedUserGuid);
-                command.Parameters.AddWithValue("@actionIn", action);
+                // parameters
+                command.Parameters.AddWithValue("@guidIn", request.guid);
+                command.Parameters.Add("@usersIn", MySqlDbType.JSON).Value = System.Text.Json.JsonSerializer.Serialize(request.users);
                 var result = new MySqlParameter("@resultOut", MySqlDbType.Int32)
                 {
                     Direction = ParameterDirection.Output
                 };
+
                 command.Parameters.Add(result);
 
                 await command.ExecuteNonQueryAsync();
 
+                int resultCode = Convert.ToInt32(result.Value);
+
+                if (resultCode == -1)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "User not found."
+                    });
+                }
+
+                if (resultCode != 1)
+                {
+                    return StatusCode(500, new
+                    {
+                        success = false,
+                        message = "An error occurred while updating users."
+                    });
+                }
+
                 return Ok(new
                 {
                     success = true,
-                    message = "Update User Settings Members successfully updated"
+                    message = "User settings successfully updated."
                 });
             }
             catch (Exception)
@@ -249,7 +284,7 @@ namespace intellectualconversationforumAPI.Controllers
                 return StatusCode(500, new
                 {
                     success = false,
-                    message = "An error occurred while updating the User Settings Members."
+                    message = "An error occurred while updating users."
                 });
             }
             finally
