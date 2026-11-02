@@ -31,7 +31,6 @@ namespace intellectualconversationforumAPI.Controllers
                 configuration["AzureStorage:ContainerName"]
                 ?? throw new InvalidOperationException(
                     "Profile images container is missing.");
-
         }
 
         [HttpGet(Name = "GetPostsByCategoryUserRating")]
@@ -75,6 +74,30 @@ namespace intellectualconversationforumAPI.Controllers
 
             return Ok(getrecords);
         }
+
+        [HttpGet(Name = "GetPostsMyFeed")]
+        public async Task<ActionResult<IEnumerable<GetPostsByCategoryUserRating>>>
+            getPostsMyFeed(string? userGuid)
+        {
+            var guidIn = new MySqlParameter( "guidIn", (object?)userGuid ?? DBNull.Value);
+
+            // Retrieve posts
+            var getrecords = await _context.GetPostsByCategoryUserRating
+                .FromSqlRaw(
+                    "CALL GetPostsMyFeedBySettings({0})", guidIn)
+                .ToListAsync();
+
+            if (getrecords.Count == 0)
+                return NotFound();
+
+            await _profileImageService.PopulateProfileImageUrlsAsync(
+                getrecords,
+                record => record.profileimagekey,
+                (record, url) => record.profileimageurl = url);
+
+            return Ok(getrecords);
+        }
+
         [HttpGet(Name = "GetPostComments")]
         public async Task<ActionResult<IEnumerable<GetPostComments>>> GetPostComments(string postGuid)
         {
