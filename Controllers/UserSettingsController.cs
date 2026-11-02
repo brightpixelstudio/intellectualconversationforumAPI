@@ -67,6 +67,36 @@ namespace intellectualconversationforumAPI.Controllers
             return Ok(getRecords);
         }
 
+        [HttpGet(Name = "GetUserSettingsCatagoriesMyFeed")]
+        public async Task<ActionResult<IEnumerable<GetUserSettingsCatagories>>> GetUserSettingsCatagoriesMyFeed(string userguid)
+        {
+            // Define the parameter to prevent SQL Injection
+            var guidIn = new MySqlParameter("@guidIn", userguid);
+
+            // MySQL utilizes the 'CALL' syntax
+            var getRecords = await _context.GetUserSettingsCatagories
+                .FromSqlRaw("CALL GetUserSettingsCatagoriesMyFeed({0})", guidIn)
+                .ToListAsync();
+
+            // return results
+            return Ok(getRecords);
+        }
+
+        [HttpGet(Name = "GetUserSettingsUserMyFeed")]
+        public async Task<ActionResult<IEnumerable<GetUserSettingsUser>>> GetUserSettingsUserMyFeed(string userguid)
+        {
+            // Define the parameter to prevent SQL Injection
+            var guidIn = new MySqlParameter("@guidIn", userguid);
+
+            // MySQL utilizes the 'CALL' syntax
+            var getRecords = await _context.GetUserSettingsUser
+                .FromSqlRaw("CALL GetUserSettingsUserMyFeed({0})", guidIn)
+                .ToListAsync();
+
+            // return results
+            return Ok(getRecords);
+        }
+
         //////////////////////////////////////////////////
         // Updates, inserts, deletes
         //////////////////////////////////////////////////
