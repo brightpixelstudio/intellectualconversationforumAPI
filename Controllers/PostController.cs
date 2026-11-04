@@ -71,7 +71,7 @@ namespace intellectualconversationforumAPI.Controllers
 
             await _blobImageService.PopulateImageUrlsAsync(
                 getrecords,
-                "post-images",
+                "profile-images",
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
 
@@ -95,7 +95,7 @@ namespace intellectualconversationforumAPI.Controllers
 
             await _blobImageService.PopulateImageUrlsAsync(
                 getrecords,
-                "post-images",
+                "profile-images",
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
 

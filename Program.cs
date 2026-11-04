@@ -54,8 +54,6 @@ builder.Services.AddCors(options =>
 
 // 6. Image service
 builder.Services.AddScoped<BlobImageService>();
-
-// 7. post i,ages
 builder.Services.AddScoped<IValidateImageService, ValidateImageService>();
 
 // 8. Image safetycontent 

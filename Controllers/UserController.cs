@@ -25,7 +25,7 @@ namespace intellectualconversationforumAPI.Controllers
         private readonly BlobImageService _blobImageService;
         private readonly PasswordService _passwordService;
 
-        public UserController(ILogger<UserController> logger, AppDbContext context, BlobServiceClient blobServiceClient, IConfiguration configuration, ValidateImageService validateImageService, BlobImageService blobImageService, PasswordService passwordService)
+        public UserController(ILogger<UserController> logger, AppDbContext context, BlobServiceClient blobServiceClient, IConfiguration configuration, IValidateImageService validateImageService, BlobImageService blobImageService, PasswordService passwordService)
         {
             _logger = logger;
             _context = context;

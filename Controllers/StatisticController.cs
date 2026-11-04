@@ -23,10 +23,9 @@ namespace intellectualconversationforumAPI.Controllers
             _blobImageService = blobImageService;
 
             _profileImagesContainer =
-                configuration["AzureStorage:ContainerName"]
+                configuration["AzureStorage:ProfileImagesContainerName"]
                 ?? throw new InvalidOperationException(
                     "Profile images container is missing.");
-
         }
 
         [HttpGet(Name = "GetMostPopularCatagories")]
