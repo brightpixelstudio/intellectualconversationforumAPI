@@ -3,12 +3,12 @@ using Azure.Storage.Sas;
 
 namespace intellectualconversationAPI.Services
 {
-    public class ProfileImageService
+    public class BlobImageService
     {
         private readonly BlobServiceClient _blobServiceClient;
         private readonly string _profileImagesContainer;
 
-        public ProfileImageService(
+        public BlobImageService(
             BlobServiceClient blobServiceClient,
             IConfiguration configuration)
         {

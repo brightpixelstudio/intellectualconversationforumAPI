@@ -19,13 +19,15 @@ namespace intellectualconversationforumAPI.Controllers
         private readonly ILogger<UserController> _logger;
         private readonly BlobServiceClient _blobServiceClient;
         private readonly string _profileImagesContainer;
-        private readonly ProfileImageService _profileImageService;
+        private readonly BlobImageService _blobImageService;
+        private readonly IValidateImageService _validateImageService;
 
-        public PostController(ILogger<UserController> logger, AppDbContext context, IConfiguration configuration, ProfileImageService profileImageService)
+        public PostController(ILogger<UserController> logger, AppDbContext context, IConfiguration configuration, BlobImageService blobImageService, IValidateImageService validateImageService)
         {
             _logger = logger;
             _context = context;
-            _profileImageService = profileImageService;
+            _blobImageService = blobImageService;
+            _validateImageService = validateImageService;
 
             _profileImagesContainer =
                 configuration["AzureStorage:ContainerName"]
@@ -67,7 +69,7 @@ namespace intellectualconversationforumAPI.Controllers
             if (getrecords.Count == 0)
                 return NotFound();
 
-            await _profileImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateProfileImageUrlsAsync(
                 getrecords,
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
@@ -90,7 +92,7 @@ namespace intellectualconversationforumAPI.Controllers
             if (getrecords.Count == 0)
                 return NotFound();
 
-            await _profileImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateProfileImageUrlsAsync(
                 getrecords,
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
@@ -149,7 +151,7 @@ namespace intellectualconversationforumAPI.Controllers
             if (getrecords.Count == 0)
                 return NotFound();
 
-            await _profileImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateProfileImageUrlsAsync(
                 getrecords,
                 record => record.commentprofileimagekey,
                 (record, url) => record.commentprofileimageurl = url);
@@ -162,7 +164,9 @@ namespace intellectualconversationforumAPI.Controllers
         // posts, updates and deletes
         /******************************************************************************/
         [HttpPost(Name = "AddPost")]
-        public async Task<ActionResult> AddPost([FromBody] FormPostNew model)
+        public async Task<ActionResult> AddPost(
+            [FromForm] FormPostNew model,
+            [FromForm] List<IFormFile>? images)
         {
             if (!ModelState.IsValid)
             {
@@ -170,6 +174,17 @@ namespace intellectualconversationforumAPI.Controllers
                 {
                     success = false,
                     message = "The form is not valid"
+                });
+            }
+
+            // image validation, size type, and content safety scanning
+            var imageValidation = _validateImageService.ValidateImagesAsync(images, 3, 1024 * 1024);
+            if (imageValidation != null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = imageValidation
                 });
             }
 
@@ -205,13 +220,20 @@ namespace intellectualconversationforumAPI.Controllers
                 {
                     Direction = ParameterDirection.Output
                 };
-
                 command.Parameters.Add(result);
+
+                var postidOut = new MySqlParameter(
+                    "@postidOut", MySqlDbType.Int32)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                command.Parameters.Add(postidOut);
 
                 await command.ExecuteNonQueryAsync();
 
-                int resultCode = Convert.ToInt32(result.Value);
-
+                int resultCode = result.Value == DBNull.Value ? -3 : Convert.ToInt32(result.Value);
+                int newPostId = postidOut.Value == DBNull.Value ? 0 : Convert.ToInt32(postidOut.Value);
+                
                 if (resultCode == 0)
                 {
                     return Conflict(new
@@ -242,7 +264,8 @@ namespace intellectualconversationforumAPI.Controllers
                 return Ok(new
                 {
                     success = true,
-                    message = "Post successfully inserted"
+                    message = "Post successfully inserted",
+                    postid = newPostId
                 });
             }
             catch (Exception)
@@ -399,7 +422,7 @@ namespace intellectualconversationforumAPI.Controllers
                 return NotFound();
 
             // Generate Azure Blob Storage profile image URLs
-            await _profileImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateProfileImageUrlsAsync(
                 getpost,
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
@@ -543,7 +566,7 @@ namespace intellectualconversationforumAPI.Controllers
                 return NotFound();
 
             // Generate Azure Blob Storage profile image URLs
-            await _profileImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateProfileImageUrlsAsync(
                 getcomment,
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);

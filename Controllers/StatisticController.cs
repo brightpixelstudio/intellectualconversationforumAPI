@@ -13,14 +13,14 @@ namespace intellectualconversationforumAPI.Controllers
         private readonly AppDbContext _context;
         private readonly ILogger<UserController> _logger;
         private readonly string _profileImagesContainer;
-        private readonly ProfileImageService _profileImageService;
+        private readonly BlobImageService _blobImageService;
 
-        public StatisticController(ILogger<UserController> logger, AppDbContext context, IConfiguration configuration, ProfileImageService profileImageService)
+        public StatisticController(ILogger<UserController> logger, AppDbContext context, IConfiguration configuration, BlobImageService blobImageService)
         {
             _logger = logger;
             _context = context;
 
-            _profileImageService = profileImageService;
+            _blobImageService = blobImageService;
 
             _profileImagesContainer =
                 configuration["AzureStorage:ContainerName"]
@@ -55,7 +55,7 @@ namespace intellectualconversationforumAPI.Controllers
             if (getrecords.Count == 0)
                 return NotFound();
 
-            await _profileImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateProfileImageUrlsAsync(
                 getrecords,
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
@@ -75,7 +75,7 @@ namespace intellectualconversationforumAPI.Controllers
             if (getrecords.Count == 0)
                 return NotFound();
 
-            await _profileImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateProfileImageUrlsAsync(
                 getrecords,
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
@@ -95,7 +95,7 @@ namespace intellectualconversationforumAPI.Controllers
             if (getrecords.Count == 0)
                 return NotFound();
 
-            await _profileImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateProfileImageUrlsAsync(
                 getrecords,
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);

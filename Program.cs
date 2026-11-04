@@ -53,12 +53,15 @@ builder.Services.AddCors(options =>
 });
 
 // 6. Image service
-builder.Services.AddScoped<ProfileImageService>();
+builder.Services.AddScoped<BlobImageService>();
 
-// 7. Image safetycontent 
+// 7. post i,ages
+builder.Services.AddScoped<IValidateImageService, ValidateImageService>();
+
+// 8. Image safetycontent 
 builder.Services.AddScoped<IProfileImageSafetyService, ProfileImageSafetyService>();
 
-// 8. Password service
+// 9. Password service
 builder.Services.AddScoped<PasswordService>();
 
 var jwtKey = builder.Configuration["Jwt:Key"]
@@ -111,7 +114,7 @@ builder.Services
 
 var app = builder.Build();
 
-// 9. Configure the HTTP request pipeline
+// 10. Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

@@ -21,18 +21,18 @@ namespace intellectualconversationforumAPI.Controllers
         private readonly ILogger<UserController> _logger;
         private readonly BlobServiceClient _blobServiceClient;
         private readonly string _profileImagesContainer;
-        private readonly ProfileImageService _profileImageService;
-        private readonly IProfileImageSafetyService _profileImageSafetyService;
+        private readonly IValidateImageService _validateImageService;
+        private readonly BlobImageService _blobImageService;
         private readonly PasswordService _passwordService;
 
-        public UserController(ILogger<UserController> logger, AppDbContext context, BlobServiceClient blobServiceClient, IConfiguration configuration, ProfileImageService profileImageService, IProfileImageSafetyService profileImageSafetyService, PasswordService passwordService)
+        public UserController(ILogger<UserController> logger, AppDbContext context, BlobServiceClient blobServiceClient, IConfiguration configuration, ValidateImageService validateImageService, BlobImageService blobImageService, PasswordService passwordService)
         {
             _logger = logger;
             _context = context;
 
             _blobServiceClient = blobServiceClient;
-            _profileImageService = profileImageService;
-            _profileImageSafetyService = profileImageSafetyService;
+            _blobImageService = blobImageService;
+            _validateImageService = validateImageService;
             _passwordService = passwordService;
 
             _profileImagesContainer =
@@ -52,7 +52,7 @@ namespace intellectualconversationforumAPI.Controllers
             if (getusers.Count == 0)
                 return NotFound();
 
-            await _profileImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateProfileImageUrlsAsync(
                 getusers,
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
@@ -73,7 +73,7 @@ namespace intellectualconversationforumAPI.Controllers
             if (getusers.Count == 0)
                 return NotFound();
 
-            await _profileImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateProfileImageUrlsAsync(
                 getusers,
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
@@ -93,7 +93,7 @@ namespace intellectualconversationforumAPI.Controllers
             if (getprofiles.Count == 0)
                 return NotFound();
 
-            await _profileImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateProfileImageUrlsAsync(
                 getprofiles,
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
@@ -197,7 +197,7 @@ namespace intellectualconversationforumAPI.Controllers
 
             var member = getprofile[0];
 
-            await _profileImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateProfileImageUrlsAsync(
                 new List<GetProfileMember> { member },
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
@@ -279,64 +279,14 @@ namespace intellectualconversationforumAPI.Controllers
             // Validate the optional profile image
             if (profileImage != null && profileImage.Length > 0)
             {
-                string[] allowedTypes =
-                {
-                    "image/jpeg",
-                    "image/jfif",
-                    "image/png",
-                    "image/webp"
-                };
-
-                if (!allowedTypes.Contains(
-                    profileImage.ContentType,
-                    StringComparer.OrdinalIgnoreCase))
+                // image validateion, size type, and content safety scanning
+                var imageValidation = _validateImageService.ValidateImagesAsync(new List<IFormFile> { profileImage }, 1, 250000);
+                if (imageValidation != null)
                 {
                     return BadRequest(new
                     {
-                        message = "Only JPG, JFIF, PNG, and WebP images are allowed."
-                    });
-                }
-
-                if (profileImage.Length > 250 * 1024)
-                {
-                    return BadRequest(new
-                    {
-                        message = "The profile image cannot exceed 250k."
-                    });
-                }
-
-                // Scan the profile image using Azure AI Content Safety
-                try
-                {
-                    int sexualSeverity =
-                        await _profileImageSafetyService.ScanProfileImageAsync(
-                            profileImage);
-
-                    // Reject images with sexual-content severity 4 or 6
-                    if (sexualSeverity >= 4)
-                    {
-                        return BadRequest(new
-                        {
-                            message =
-                                "This profile picture contains prohibited sexual content. Please choose another image."
-                        });
-                    }
-                }
-                catch (RequestFailedException)
-                {
-                    // Do not allow an image to bypass safety scanning
-                    return StatusCode(503, new
-                    {
-                        message =
-                            "Image safety scanning is temporarily unavailable. Please try again later."
-                    });
-                }
-                catch (InvalidOperationException)
-                {
-                    return StatusCode(503, new
-                    {
-                        message =
-                            "Image safety scanning is not configured or could not return a result."
+                        success = false,
+                        message = imageValidation
                     });
                 }
             }
@@ -416,66 +366,16 @@ namespace intellectualconversationforumAPI.Controllers
 
             // 2. Validate the optional new profile image.
             var profileImage = model.profileImage;
-
             if (profileImage != null && profileImage.Length > 0)
             {
-                string[] allowedTypes =
-                {
-                    "image/jpeg",
-                    "image/jfif",
-                    "image/png",
-                    "image/webp"
-                };
-
-                if (!allowedTypes.Contains(
-                    profileImage.ContentType,
-                    StringComparer.OrdinalIgnoreCase))
+                // image validation, size type, and content safety scanning
+                var imageValidation = _validateImageService.ValidateImagesAsync(new List<IFormFile> { profileImage }, 1, 250000);
+                if (imageValidation != null)
                 {
                     return BadRequest(new
                     {
-                        message = "Only JPG, JFIF, PNG, and WebP images are allowed."
-                    });
-                }
-
-                if (profileImage.Length > 250 * 1024)
-                {
-                    return BadRequest(new
-                    {
-                        message = "The profile image cannot exceed 250 KB."
-                    });
-                }
-                // Scan the profile image using Azure AI Content Safety
-                try
-                {
-                    int sexualSeverity =
-                        await _profileImageSafetyService.ScanProfileImageAsync(
-                            profileImage);
-
-                    // Reject images with sexual-content severity 4 or 6
-                    if (sexualSeverity >= 4)
-                    {
-                        return BadRequest(new
-                        {
-                            message =
-                                "This profile picture contains prohibited sexual content. Please choose another image."
-                        });
-                    }
-                }
-                catch (RequestFailedException)
-                {
-                    // Do not allow an image to bypass safety scanning
-                    return StatusCode(503, new
-                    {
-                        message =
-                            "Image safety scanning is temporarily unavailable. Please try again later."
-                    });
-                }
-                catch (InvalidOperationException)
-                {
-                    return StatusCode(503, new
-                    {
-                        message =
-                            "Image safety scanning is not configured or could not return a result."
+                        success = false,
+                        message = imageValidation
                     });
                 }
             }
