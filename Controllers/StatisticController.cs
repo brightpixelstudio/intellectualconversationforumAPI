@@ -55,8 +55,9 @@ namespace intellectualconversationforumAPI.Controllers
             if (getrecords.Count == 0)
                 return NotFound();
 
-            await _blobImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateImageUrlsAsync(
                 getrecords,
+                "profile-images",
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
 
@@ -75,8 +76,9 @@ namespace intellectualconversationforumAPI.Controllers
             if (getrecords.Count == 0)
                 return NotFound();
 
-            await _blobImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateImageUrlsAsync(
                 getrecords,
+                "profile-images",
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
 
@@ -95,8 +97,9 @@ namespace intellectualconversationforumAPI.Controllers
             if (getrecords.Count == 0)
                 return NotFound();
 
-            await _blobImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateImageUrlsAsync(
                 getrecords,
+                "profile-images",
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
 

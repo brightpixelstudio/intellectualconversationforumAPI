@@ -3,64 +3,105 @@ using Azure.Storage.Sas;
 
 namespace intellectualconversationAPI.Services
 {
+
     public class BlobImageService
     {
         private readonly BlobServiceClient _blobServiceClient;
-        private readonly string _profileImagesContainer;
 
         public BlobImageService(
-            BlobServiceClient blobServiceClient,
-            IConfiguration configuration)
+            BlobServiceClient blobServiceClient)
         {
             _blobServiceClient = blobServiceClient;
-
-            _profileImagesContainer =
-                configuration["AzureStorage:ContainerName"]
-                ?? throw new InvalidOperationException(
-                    "AzureStorage:ContainerName is missing.");
         }
 
-        public async Task PopulateProfileImageUrlsAsync<T>(
-            IEnumerable<T> records,
-            Func<T, string?> getProfileImageKey,
-            Action<T, string?> setProfileImageUrl)
+        public async Task<string> UploadImageAsync(
+            IFormFile image,
+            string containerName)
         {
             var containerClient =
                 _blobServiceClient.GetBlobContainerClient(
-                    _profileImagesContainer);
+                    containerName);
 
+            // Generate a unique key for the image.
+            string extension =
+                Path.GetExtension(image.FileName).ToLowerInvariant();
+
+            string imageKey = $"{Guid.NewGuid()}{extension}";
+
+            var blobClient =
+                containerClient.GetBlobClient(imageKey);
+
+            await using var stream = image.OpenReadStream();
+
+            await blobClient.UploadAsync(
+                stream,
+                overwrite: false);
+
+            return imageKey;
+        }
+
+        public async Task<string?> GenerateReadSasUrlAsync(
+            string? imageKey,
+            string containerName)
+        {
+            if (string.IsNullOrWhiteSpace(imageKey))
+                return null;
+
+            var containerClient =
+                _blobServiceClient.GetBlobContainerClient(
+                    containerName);
+
+            var blobClient =
+                containerClient.GetBlobClient(imageKey);
+
+            // Skip missing images.
+            if (!(await blobClient.ExistsAsync()).Value)
+                return null;
+
+            var sasBuilder = new BlobSasBuilder
+            {
+                BlobContainerName = containerName,
+                BlobName = imageKey,
+                Resource = "b",
+                ExpiresOn = DateTimeOffset.UtcNow.AddMinutes(30)
+            };
+
+            sasBuilder.SetPermissions(
+                BlobSasPermissions.Read);
+
+            return blobClient.GenerateSasUri(sasBuilder).ToString();
+        }
+
+        public async Task PopulateImageUrlsAsync<T>(
+            IEnumerable<T> records,
+            string containerName,
+            Func<T, string?> getImageKey,
+            Action<T, string?> setImageUrl)
+        {
             foreach (var record in records)
             {
-                setProfileImageUrl(record, null);
+                var imageKey = getImageKey(record);
 
-                var profileImageKey = getProfileImageKey(record);
+                var imageUrl = await GenerateReadSasUrlAsync(
+                    imageKey,
+                    containerName);
 
-                if (string.IsNullOrWhiteSpace(profileImageKey))
-                    continue;
-
-                var blobClient =
-                    containerClient.GetBlobClient(profileImageKey);
-
-                // Skip missing images
-                if (!(await blobClient.ExistsAsync()).Value)
-                    continue;
-
-                // Generate a read-only SAS URL valid for 30 minutes
-                var sasBuilder = new BlobSasBuilder
-                {
-                    BlobContainerName = _profileImagesContainer,
-                    BlobName = profileImageKey,
-                    Resource = "b",
-                    ExpiresOn = DateTimeOffset.UtcNow.AddMinutes(30)
-                };
-
-                sasBuilder.SetPermissions(
-                    BlobSasPermissions.Read);
-
-                setProfileImageUrl(
-                    record,
-                    blobClient.GenerateSasUri(sasBuilder).ToString());
+                setImageUrl(record, imageUrl);
             }
+        }
+
+        public async Task DeleteImageAsync(
+            string imageKey,
+            string containerName)
+        {
+            var containerClient =
+                _blobServiceClient.GetBlobContainerClient(
+                    containerName);
+
+            var blobClient =
+                containerClient.GetBlobClient(imageKey);
+
+            await blobClient.DeleteIfExistsAsync();
         }
     }
 }

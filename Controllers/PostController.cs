@@ -16,23 +16,23 @@ namespace intellectualconversationforumAPI.Controllers
     public class PostController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly ILogger<UserController> _logger;
+        private readonly ILogger<PostController> _logger;
         private readonly BlobServiceClient _blobServiceClient;
-        private readonly string _profileImagesContainer;
+        private readonly string _postImagesContainer;
         private readonly BlobImageService _blobImageService;
         private readonly IValidateImageService _validateImageService;
 
-        public PostController(ILogger<UserController> logger, AppDbContext context, IConfiguration configuration, BlobImageService blobImageService, IValidateImageService validateImageService)
+        public PostController(ILogger<PostController> logger, AppDbContext context, IConfiguration configuration, BlobImageService blobImageService, IValidateImageService validateImageService)
         {
             _logger = logger;
             _context = context;
             _blobImageService = blobImageService;
             _validateImageService = validateImageService;
 
-            _profileImagesContainer =
-                configuration["AzureStorage:ContainerName"]
+            _postImagesContainer =
+                configuration["AzureStorage:PostImagesContainerName"]
                 ?? throw new InvalidOperationException(
-                    "Profile images container is missing.");
+                    "Post images container is missing.");
         }
 
         [HttpGet(Name = "GetPostsByCategoryUserRating")]
@@ -69,8 +69,9 @@ namespace intellectualconversationforumAPI.Controllers
             if (getrecords.Count == 0)
                 return NotFound();
 
-            await _blobImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateImageUrlsAsync(
                 getrecords,
+                "post-images",
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
 
@@ -92,8 +93,9 @@ namespace intellectualconversationforumAPI.Controllers
             if (getrecords.Count == 0)
                 return NotFound();
 
-            await _blobImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateImageUrlsAsync(
                 getrecords,
+                "post-images",
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
 
@@ -151,8 +153,9 @@ namespace intellectualconversationforumAPI.Controllers
             if (getrecords.Count == 0)
                 return NotFound();
 
-            await _blobImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateImageUrlsAsync(
                 getrecords,
+                "post-images",
                 record => record.commentprofileimagekey,
                 (record, url) => record.commentprofileimageurl = url);
 
@@ -422,8 +425,9 @@ namespace intellectualconversationforumAPI.Controllers
                 return NotFound();
 
             // Generate Azure Blob Storage profile image URLs
-            await _blobImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateImageUrlsAsync(
                 getpost,
+                "post-images",
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
 
@@ -566,11 +570,12 @@ namespace intellectualconversationforumAPI.Controllers
                 return NotFound();
 
             // Generate Azure Blob Storage profile image URLs
-            await _blobImageService.PopulateProfileImageUrlsAsync(
+            await _blobImageService.PopulateImageUrlsAsync(
                 getcomment,
+                "post-images",
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
-            
+
             // return results
             return Ok(getcomment);
         }
