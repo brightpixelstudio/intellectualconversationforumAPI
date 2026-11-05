@@ -283,7 +283,7 @@ namespace intellectualconversationforumAPI.Controllers
             if (profileImage != null && profileImage.Length > 0)
             {
                 // image validateion, size type, and content safety scanning
-                var imageValidation = _validateImageService.ValidateImagesAsync(new List<IFormFile> { profileImage }, 1, 250000);
+                var imageValidation = await _validateImageService.ValidateImagesAsync(new List<IFormFile> { profileImage }, 1, 250000);
                 if (imageValidation != null)
                 {
                     return BadRequest(new
@@ -372,7 +372,7 @@ namespace intellectualconversationforumAPI.Controllers
             if (profileImage != null && profileImage.Length > 0)
             {
                 // image validation, size type, and content safety scanning
-                var imageValidation = _validateImageService.ValidateImagesAsync(new List<IFormFile> { profileImage }, 1, 250000);
+                var imageValidation = await _validateImageService.ValidateImagesAsync(new List<IFormFile> { profileImage }, 1, 250000);
                 if (imageValidation != null)
                 {
                     return BadRequest(new

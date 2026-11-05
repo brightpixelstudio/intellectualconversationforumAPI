@@ -155,7 +155,7 @@ namespace intellectualconversationforumAPI.Controllers
 
             await _blobImageService.PopulateImageUrlsAsync(
                 getrecords,
-                "post-images",
+                "profile-images",
                 record => record.commentprofileimagekey,
                 (record, url) => record.commentprofileimageurl = url);
 
@@ -166,6 +166,7 @@ namespace intellectualconversationforumAPI.Controllers
         /******************************************************************************/
         // posts, updates and deletes
         /******************************************************************************/
+
         [HttpPost(Name = "AddPost")]
         public async Task<ActionResult> AddPost(
             [FromForm] FormPostNew model,
@@ -180,8 +181,11 @@ namespace intellectualconversationforumAPI.Controllers
                 });
             }
 
-            // image validation, size type, and content safety scanning
-            var imageValidation = _validateImageService.ValidateImagesAsync(images, 3, 1024 * 1024);
+            // Validate images
+            var imageValidation =
+                await _validateImageService.ValidateImagesAsync(
+                    images, 3, 1024 * 1024);
+
             if (imageValidation != null)
             {
                 return BadRequest(new
@@ -196,6 +200,11 @@ namespace intellectualconversationforumAPI.Controllers
 
             bool openedConnection = false;
 
+            MySqlTransaction? transaction = null;
+
+            // Track uploaded blobs for cleanup if anything fails
+            var uploadedBlobKeys = new List<string>();
+
             try
             {
                 if (connection.State != ConnectionState.Open)
@@ -204,8 +213,11 @@ namespace intellectualconversationforumAPI.Controllers
                     openedConnection = true;
                 }
 
+                transaction = await connection.BeginTransactionAsync();
+
+                // Insert the post
                 await using var command = new MySqlCommand(
-                    "InsertPost", connection);
+                    "InsertPost", connection, transaction);
 
                 command.CommandType = CommandType.StoredProcedure;
 
@@ -223,6 +235,7 @@ namespace intellectualconversationforumAPI.Controllers
                 {
                     Direction = ParameterDirection.Output
                 };
+
                 command.Parameters.Add(result);
 
                 var postidOut = new MySqlParameter(
@@ -232,13 +245,30 @@ namespace intellectualconversationforumAPI.Controllers
                 };
                 command.Parameters.Add(postidOut);
 
+                var postguidOut = new MySqlParameter(
+                    "@postguidOut", MySqlDbType.String)
+                {
+                    Direction = ParameterDirection.Output,
+                    Size = 36
+                };                 
+                command.Parameters.Add(postguidOut);
+
                 await command.ExecuteNonQueryAsync();
 
-                int resultCode = result.Value == DBNull.Value ? -3 : Convert.ToInt32(result.Value);
-                int newPostId = postidOut.Value == DBNull.Value ? 0 : Convert.ToInt32(postidOut.Value);
+                int resultCode = result.Value == DBNull.Value
+                    ? -3
+                    : Convert.ToInt32(result.Value);
+
+                int newPostId = postidOut.Value == DBNull.Value
+                    ? 0
+                    : Convert.ToInt32(postidOut.Value);
                 
+                string postguid = postguidOut.Value?.ToString();
+
                 if (resultCode == 0)
                 {
+                    await transaction.RollbackAsync();
+
                     return Conflict(new
                     {
                         success = false,
@@ -248,6 +278,8 @@ namespace intellectualconversationforumAPI.Controllers
 
                 if (resultCode == -1)
                 {
+                    await transaction.RollbackAsync();
+
                     return BadRequest(new
                     {
                         success = false,
@@ -255,14 +287,69 @@ namespace intellectualconversationforumAPI.Controllers
                     });
                 }
 
-                if (resultCode != 1)
+                if (resultCode != 1 || newPostId <= 0)
                 {
-                    return StatusCode(500, new
-                    {
-                        success = false,
-                        message = "Unexpected result inserting post."
-                    });
+                    throw new Exception(
+                        "Unexpected result inserting post.");
                 }
+
+                // Upload images and insert their database records
+                if (images != null && images.Count > 0)
+                {
+                    foreach (var image in images)
+                    {
+                        // Upload image to Azure
+                        string postimagekey =
+                            await _blobImageService.UploadImageAsync(
+                                image,
+                                "post-images");
+
+                        uploadedBlobKeys.Add(postimagekey);
+
+                        // Insert image record into MySQL
+                        await using var imageCommand =
+                            new MySqlCommand(
+                                "InsertPostImage",
+                                connection,
+                                transaction);
+
+                        imageCommand.CommandType =
+                            CommandType.StoredProcedure;
+
+                        imageCommand.Parameters.Add(
+                            new MySqlParameter("@guidIn", MySqlDbType.String)
+                            {
+                                Value = postguid
+                            });
+
+                        imageCommand.Parameters.AddWithValue(
+                            "@postimagekeyIn", postimagekey);
+
+                        var imageResult = new MySqlParameter(
+                            "@resultOut", MySqlDbType.Int32)
+                        {
+                            Direction = ParameterDirection.Output
+                        };
+
+                        imageCommand.Parameters.Add(imageResult);
+
+                        await imageCommand.ExecuteNonQueryAsync();
+
+                        int imageResultCode =
+                            imageResult.Value == DBNull.Value
+                                ? -3
+                                : Convert.ToInt32(imageResult.Value);
+
+                        if (imageResultCode != 1)
+                        {
+                            throw new Exception(
+                                $"Failed to insert post image. Result: {imageResultCode}");
+                        }
+                    }
+                }
+
+                // Commit post and image records
+                await transaction.CommitAsync();
 
                 return Ok(new
                 {
@@ -271,8 +358,39 @@ namespace intellectualconversationforumAPI.Controllers
                     postid = newPostId
                 });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                if (transaction != null)
+                {
+                    try
+                    {
+                        await transaction.RollbackAsync();
+                    }
+                    catch
+                    {
+                        // Preserve original exception
+                    }
+                }
+
+                // Remove any blobs uploaded during this request
+                foreach (var blobKey in uploadedBlobKeys)
+                {
+                    try
+                    {
+                        await _blobImageService.DeleteImageAsync(
+                            blobKey,
+                            "post-images");
+                    }
+                    catch
+                    {
+                        // Log cleanup failure for later investigation
+                    }
+                }
+
+                _logger.LogError(
+                    ex,
+                    "Error inserting post or uploading post images.");
+
                 return StatusCode(500, new
                 {
                     success = false,
@@ -281,6 +399,11 @@ namespace intellectualconversationforumAPI.Controllers
             }
             finally
             {
+                if (transaction != null)
+                {
+                    await transaction.DisposeAsync();
+                }
+
                 if (openedConnection)
                 {
                     await connection.CloseAsync();
@@ -427,7 +550,7 @@ namespace intellectualconversationforumAPI.Controllers
             // Generate Azure Blob Storage profile image URLs
             await _blobImageService.PopulateImageUrlsAsync(
                 getpost,
-                "post-images",
+                "profile-images",
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
 
@@ -572,7 +695,7 @@ namespace intellectualconversationforumAPI.Controllers
             // Generate Azure Blob Storage profile image URLs
             await _blobImageService.PopulateImageUrlsAsync(
                 getcomment,
-                "post-images",
+                "profile-images",
                 record => record.profileimagekey,
                 (record, url) => record.profileimageurl = url);
 

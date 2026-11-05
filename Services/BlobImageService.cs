@@ -1,4 +1,5 @@
 ﻿using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Azure.Storage.Sas;
 
 namespace intellectualconversationAPI.Services
@@ -35,8 +36,13 @@ namespace intellectualconversationAPI.Services
 
             await blobClient.UploadAsync(
                 stream,
-                overwrite: false);
-
+                new BlobUploadOptions
+                {
+                    HttpHeaders = new BlobHttpHeaders
+                    {
+                        ContentType = image.ContentType
+                    }
+                });
             return imageKey;
         }
 
