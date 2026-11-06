@@ -8,5 +8,8 @@ namespace intellectualconversationAPI.Models.Member
         [Key]
         public int Commentid { get; set; }
         public decimal AverageRating { get; set; }
+        public int? UserRating { get; set; }
+        public int RatingCount { get; set; }
+
     }
 }

@@ -497,7 +497,7 @@ namespace intellectualconversationforumAPI.Controllers
             var guidIn = new MySqlParameter("@guidIn", postguid);
 
             var posts = await _context.GetPost
-                .FromSqlRaw("CALL GetPost({0})", guidIn)
+                .FromSqlRaw("CALL GetPost({0}, {1})", guidIn, userguidIn)
                 .ToListAsync();
 
             // Find the post in memory
@@ -512,7 +512,9 @@ namespace intellectualconversationforumAPI.Controllers
             return Ok(new PostRatingResponse
             {
                 Postid = post.postid,
-                AverageRating = Convert.ToDecimal(post.rating)
+                RatingAverage = Convert.ToDecimal(post.rating),
+                UserRating = post.userrating,
+                RatingCount = post.ratingcount
             });
         }
 
@@ -532,7 +534,7 @@ namespace intellectualconversationforumAPI.Controllers
             var CommentId = new MySqlParameter("@commentidIn", commentguidIn);
 
             var comments = await _context.GetComment
-                .FromSqlRaw("CALL GetComment({0})", commentguidIn)
+                .FromSqlRaw("CALL GetComment({0},{1})", commentguidIn, userguid)
                 .ToListAsync();
 
             // Find the post in memory
@@ -547,7 +549,9 @@ namespace intellectualconversationforumAPI.Controllers
             return Ok(new CommentRatingResponse
             {
                 Commentid = comment.postid,
-                AverageRating = Convert.ToDecimal(comment.rating)
+                AverageRating = Convert.ToDecimal(comment.rating),
+                UserRating = comment.userrating,
+                RatingCount = comment.ratingcount
             });
         }
 

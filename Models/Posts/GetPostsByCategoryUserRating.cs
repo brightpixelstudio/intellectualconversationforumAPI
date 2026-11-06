@@ -20,6 +20,8 @@ namespace intellectualconversationAPI.Models.Posts
         public int count { get; set; }
         public string? post { get; set; }
         public float rating { get; set; }
+        public int ratingcount { get; set; }
+        public int? userrating { get; set; }
         public sbyte commentsclosed { get; set; }
     }
 }

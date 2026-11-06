@@ -16,6 +16,8 @@ namespace intellectualconversationAPI.Models.Posts
         public string? name { get; set; }
         public string? catagory { get; set; }
         public float rating { get; set; }
+        public int ratingcount { get; set; }
+        public int? userrating { get; set; }
         public string? profileimagekey { get; set; }
         public string? profileimageurl { get; set; }
     }

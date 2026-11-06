@@ -9,14 +9,16 @@ namespace intellectualconversationAPI.Models.Posts
         public int postcommentid { get; set; }
         public int postid { get; set; }
         public int userid { get; set; }
-        public string commentguid { get; set; }
-        public string postguid { get; set; }
-        public string userguid { get; set; }
+        public string? commentguid { get; set; }
+        public string? postguid { get; set; }
+        public string? userguid { get; set; }
         public string? name { get; set; }
         public string? username { get; set; }
         public DateTime dateadded { get; set; }
-        public string catagory { get; set; }
+        public string? catagory { get; set; }
         public float rating { get; set; }
+        public int? ratingcount { get; set; }
+        public int? userrating { get; set; }
         public string? comment { get; set; }
         public string? commentprofileimagekey { get; set; }
         public string? commentprofileimageurl { get; set; }

@@ -41,7 +41,8 @@ namespace intellectualconversationforumAPI.Controllers
                 int? postcatagoryId,
                 string? userGuid,
                 float? rating,
-                string? searchString)
+                string? searchString,
+                string userloginguid)
         {
             // Define parameters
             var postcatagoryid = new MySqlParameter(
@@ -56,14 +57,18 @@ namespace intellectualconversationforumAPI.Controllers
             var searchStringIn = new MySqlParameter(
                 "searchStringIn", (object?)searchString ?? DBNull.Value);
 
+            var userGuidIn = new MySqlParameter(
+                "userGuidIn", (object?)userloginguid ?? DBNull.Value);
+
             // Retrieve posts
             var getrecords = await _context.GetPostsByCategoryUserRating
                 .FromSqlRaw(
-                    "CALL GetPostsByCategoryUserRating({0}, {1}, {2}, {3})",
+                    "CALL GetPostsByCategoryUserRating({0}, {1}, {2}, {3}, {4} )",
                     postcatagoryid,
                     guidIn,
                     ratingIn,
-                    searchStringIn)
+                    searchStringIn, 
+                    userGuidIn)
                 .ToListAsync();
 
             if (getrecords.Count == 0)
@@ -103,7 +108,7 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpGet(Name = "GetPostComments")]
-        public async Task<ActionResult<IEnumerable<GetPostComments>>> GetPostComments(string postGuid)
+        public async Task<ActionResult<IEnumerable<GetPostComments>>> GetPostComments(string postGuid, string userguid)
         {
             var getrecords = new List<GetPostComments>();
 
@@ -119,6 +124,7 @@ namespace intellectualconversationforumAPI.Controllers
 
                 // Add the parameter cleanly
                 command.Parameters.Add(new MySqlParameter("@guidIn", postGuid));
+                command.Parameters.Add(new MySqlParameter("@userguidIn", userguid));
 
                 using (var reader = await command.ExecuteReaderAsync())
                 {
@@ -138,6 +144,12 @@ namespace intellectualconversationforumAPI.Controllers
                             dateadded = reader.GetDateTime("dateadded"),
                             catagory = reader.GetString("catagory"),
                             rating = reader.GetFloat("rating"),
+                            ratingcount = reader.IsDBNull(reader.GetOrdinal("ratingcount"))
+                                ? 0
+                                : reader.GetInt32(reader.GetOrdinal("ratingcount")),
+                            userrating = reader.IsDBNull(reader.GetOrdinal("userrating"))
+                                ? null
+                                : reader.GetInt32(reader.GetOrdinal("userrating")),
                             comment = reader.GetString("comment"),
                             commentprofileimagekey =
                                 reader.IsDBNull(reader.GetOrdinal("commentprofileimagekey"))
@@ -534,14 +546,14 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpGet(Name = "GetPost")]
-        public async Task<ActionResult<IEnumerable<GetPost>>> GetPost(string postguid)
+        public async Task<ActionResult<IEnumerable<GetPost>>> GetPost(string postguid, string userguid)
         {
             // Define the parameter to prevent SQL Injection
             var guidIn = new MySqlParameter("@guidIn", postguid);
 
             // MySQL utilizes the 'CALL' syntax
             var getpost = await _context.GetPost
-                .FromSqlRaw("CALL GetPost({0})", guidIn)
+                .FromSqlRaw("CALL GetPost({0},{1})", guidIn, userguid)
                 .ToListAsync();
 
             if (getpost.Count == 0)
