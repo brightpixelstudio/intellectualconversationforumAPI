@@ -44,45 +44,116 @@ namespace intellectualconversationforumAPI.Controllers
                 string? searchString,
                 string userloginguid)
         {
-            // Define parameters
-            var postcatagoryid = new MySqlParameter(
-                "postcatagoryid", (object?)postcatagoryId ?? DBNull.Value);
+            var connection = _context.Database.GetDbConnection();
 
-            var guidIn = new MySqlParameter(
-                "guidIn", (object?)userGuid ?? DBNull.Value);
+            bool shouldCloseConnection = connection.State != ConnectionState.Open;
 
-            var ratingIn = new MySqlParameter(
-                "ratingIn", (object?)rating ?? DBNull.Value);
+            try
+            {
+                if (shouldCloseConnection)
+                    await connection.OpenAsync();
 
-            var searchStringIn = new MySqlParameter(
-                "searchStringIn", (object?)searchString ?? DBNull.Value);
+                using var command = connection.CreateCommand();
 
-            var userGuidIn = new MySqlParameter(
-                "userGuidIn", (object?)userloginguid ?? DBNull.Value);
+                command.CommandText = "CALL GetPostsByCategoryUserRating(@postcatagoryidIn, @guidIn, @ratingIn, @searchStringIn, @userguidIn)";
+                command.CommandType = CommandType.Text;
 
-            // Retrieve posts
-            var getrecords = await _context.GetPostsByCategoryUserRating
-                .FromSqlRaw(
-                    "CALL GetPostsByCategoryUserRating({0}, {1}, {2}, {3}, {4} )",
-                    postcatagoryid,
-                    guidIn,
-                    ratingIn,
-                    searchStringIn, 
-                    userGuidIn)
-                .ToListAsync();
+                command.Parameters.Add(new MySqlParameter(
+                    "@postcatagoryidIn", (object?)postcatagoryId ?? DBNull.Value));
 
-            if (getrecords.Count == 0)
-                return NotFound();
+                command.Parameters.Add(new MySqlParameter(
+                    "@guidIn", (object?)userGuid ?? DBNull.Value));
 
-            await _blobImageService.PopulateImageUrlsAsync(
-                getrecords,
-                "profile-images",
-                record => record.profileimagekey,
-                (record, url) => record.profileimageurl = url);
+                command.Parameters.Add(new MySqlParameter(
+                    "@ratingIn", (object?)rating ?? DBNull.Value));
 
-            return Ok(getrecords);
+                command.Parameters.Add(new MySqlParameter(
+                    "@searchStringIn", (object?)searchString ?? DBNull.Value));
+
+                command.Parameters.Add(new MySqlParameter(
+                    "@userguidIn", (object?)userloginguid ?? DBNull.Value));
+
+                var getrecords = new List<GetPostsByCategoryUserRating>();
+
+                using var reader = await command.ExecuteReaderAsync();
+
+                // Result set 1: Posts
+                while (await reader.ReadAsync())
+                {
+                    getrecords.Add(new GetPostsByCategoryUserRating
+                    {
+                        postid = reader.GetInt32(reader.GetOrdinal("postid")),
+                        postguid = reader.GetString(reader.GetOrdinal("postguid")),
+                        userid = reader.GetInt32(reader.GetOrdinal("userid")),
+                        userguid = reader.GetString(reader.GetOrdinal("userguid")),
+                        username = reader.GetString(reader.GetOrdinal("username")),
+                        name = reader.GetString(reader.GetOrdinal("name")),
+                        profileimagekey = reader.IsDBNull(reader.GetOrdinal("profileimagekey"))
+                            ? null
+                            : reader.GetString(reader.GetOrdinal("profileimagekey")),
+                        profileimageurl = null,
+                        postcatagoryid = reader.GetInt32(reader.GetOrdinal("postcatagoryid")),
+                        catagory = reader.GetString(reader.GetOrdinal("catagory")),
+                        dateadded = reader.GetDateTime(reader.GetOrdinal("dateadded")),
+                        count = reader.GetInt32(reader.GetOrdinal("count")),
+                        post = reader.IsDBNull(reader.GetOrdinal("post"))
+                            ? null
+                            : reader.GetString(reader.GetOrdinal("post")),
+                        rating = Convert.ToSingle(reader["rating"]),
+                        ratingcount = reader.GetInt32(reader.GetOrdinal("ratingcount")),
+                        userrating = reader.IsDBNull(reader.GetOrdinal("userrating"))
+                            ? null
+                            : Convert.ToInt32(reader["userrating"]),
+                        commentsclosed = Convert.ToSByte(reader["commentsclosed"]),
+                    });
+                }
+
+                // Result set 2: Post images
+                if (await reader.NextResultAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        var postid = reader.GetInt32(reader.GetOrdinal("postid"));
+
+                        var post = getrecords.FirstOrDefault(p => p.postid == postid);
+
+                        if (post != null)
+                        {
+                            post.postimages.Add(new PostImage
+                            {
+                                postimageid = reader.GetInt32(reader.GetOrdinal("postimageid")),
+                                postid = postid,
+                                postimagekey = reader.GetString(reader.GetOrdinal("postimagekey"))
+                            });
+                        }
+                    }
+                }
+
+                if (getrecords.Count == 0)
+                    return NotFound();
+
+                // Populate profile image URLs
+                await _blobImageService.PopulateImageUrlsAsync(
+                    getrecords,
+                    "profile-images",
+                    record => record.profileimagekey,
+                    (record, url) => record.profileimageurl = url);
+
+                // Populate post image URLs
+                await _blobImageService.PopulateImageUrlsAsync(
+                    getrecords.SelectMany(p => p.postimages),
+                    "post-images",
+                    record => record.postimagekey,
+                    (record, url) => record.postimageurl = url);
+
+                return Ok(getrecords);
+            }
+            finally
+            {
+                if (shouldCloseConnection)
+                    await connection.CloseAsync();
+            }
         }
-
         [HttpGet(Name = "GetPostsMyFeed")]
         public async Task<ActionResult<IEnumerable<GetPostsByCategoryUserRating>>>
             getPostsMyFeed(string? userGuid)

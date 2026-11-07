@@ -23,5 +23,6 @@ namespace intellectualconversationAPI.Models.Posts
         public int ratingcount { get; set; }
         public int? userrating { get; set; }
         public sbyte commentsclosed { get; set; }
+        public List<PostImage> postimages { get; set; } = new();
     }
 }
