@@ -22,5 +22,6 @@ namespace intellectualconversationAPI.Models.Posts
         public sbyte commentsclosed { get; set; }
         public string? profileimagekey { get; set; }
         public string? profileimageurl { get; set; }
+        public List<PostImage> postimages { get; set; } = new();
     }
 }

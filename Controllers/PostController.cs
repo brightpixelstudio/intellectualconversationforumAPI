@@ -107,6 +107,123 @@ namespace intellectualconversationforumAPI.Controllers
             return Ok(getrecords);
         }
 
+
+        [HttpGet(Name = "GetPost")]
+        public async Task<ActionResult<IEnumerable<GetPost>>> GetPost(
+            string postguid,
+            string userguid)
+        {
+            var connection = _context.Database.GetDbConnection();
+            bool connectionOpened = connection.State != ConnectionState.Open;
+
+            GetPost? post = null;
+
+            try
+            {
+                if (connectionOpened)
+                    await connection.OpenAsync();
+
+                await using var command = connection.CreateCommand();
+
+                command.CommandText = "CALL GetPost(@guidIn, @userguidIn)";
+                command.CommandType = CommandType.Text;
+
+                var guidParameter = command.CreateParameter();
+                guidParameter.ParameterName = "@guidIn";
+                guidParameter.Value = postguid;
+                command.Parameters.Add(guidParameter);
+
+                var userParameter = command.CreateParameter();
+                userParameter.ParameterName = "@userguidIn";
+                userParameter.Value = userguid;
+                command.Parameters.Add(userParameter);
+
+                await using var reader = await command.ExecuteReaderAsync();
+
+                // Result set 1: Post information
+                if (await reader.ReadAsync())
+                {
+                    post = new GetPost
+                    {
+                        postid = Convert.ToInt32(reader["postid"]),
+                        post = reader["post"] as string,
+                        userid = Convert.ToInt32(reader["userid"]),
+                        userguid = reader["userguid"] as string,
+                        name = reader["name"] as string,
+                        username = reader["username"] as string,
+                        postcatagoryid = Convert.ToInt32(reader["postcatagoryid"]),
+                        catagory = reader["catagory"] as string,
+                        count = Convert.ToInt32(reader["count"]),
+                        rating = Convert.ToSingle(reader["rating"]),
+                        ratingcount = Convert.ToInt32(reader["ratingcount"]),
+                        userrating = reader["userrating"] == DBNull.Value
+                            ? null
+                            : Convert.ToInt32(reader["userrating"]),
+                        dateadded = Convert.ToDateTime(reader["dateadded"]),
+                        commentsclosed = Convert.ToSByte(reader["commentsclosed"]),
+                        profileimagekey = reader["profileimagekey"] as string
+                    };
+                }
+
+                if (post == null)
+                    return NotFound();
+
+                // Result set 2: Post images
+                if (await reader.NextResultAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        post.postimages.Add(new PostImage
+                        {
+                            postimageid = Convert.ToInt32(reader["postimageid"]),
+                            postid = Convert.ToInt32(reader["postid"]),
+                            postimagekey = Convert.ToString(reader["postimagekey"])!
+                        });
+                    }
+                }
+            }
+            finally
+            {
+                if (connectionOpened)
+                    await connection.CloseAsync();
+            }
+
+            // Generate profile image SAS URL
+            await _blobImageService.PopulateImageUrlsAsync(
+                new[] { post },
+                "profile-images",
+                record => record.profileimagekey,
+                (record, url) => record.profileimageurl = url);
+
+            // Generate post image SAS URLs
+            await _blobImageService.PopulateImageUrlsAsync(
+                post.postimages,
+                "post-images",
+                record => record.postimagekey,
+                (record, url) => record.postimageurl = url);
+
+            return Ok(new[] { post });
+        }
+
+
+        [HttpGet(Name = "GetPostRatings")]
+        public async Task<ActionResult<IEnumerable<GetPostRatings>>> GetPostRatings(string postguid)
+        {
+            // Define the parameter to prevent SQL Injection
+            var postguidIn = new MySqlParameter("@postguidIn", postguid);
+
+            // MySQL utilizes the 'CALL' syntax
+            var getpostratings = await _context.GetPostRatings
+                .FromSqlRaw("CALL GetPostRatings({0})", postguidIn)
+                .ToListAsync();
+
+            if (getpostratings.Count == 0)
+                return NotFound();
+
+            // return results
+            return Ok(getpostratings);
+        }
+
         [HttpGet(Name = "GetPostComments")]
         public async Task<ActionResult<IEnumerable<GetPostComments>>> GetPostComments(string postGuid, string userguid)
         {
@@ -173,6 +290,32 @@ namespace intellectualconversationforumAPI.Controllers
 
             // return results
             return Ok(getrecords);
+        }
+
+        [HttpGet(Name = "GetComment")]
+        public async Task<ActionResult<IEnumerable<GetComment>>> GetComment(string commentguid, string userguidIn)
+        {
+            // Define the parameter to prevent SQL Injection
+            var guid = new MySqlParameter("@guid", commentguid);
+            var userguid = new MySqlParameter("@userguid", userguidIn);
+
+            // MySQL utilizes the 'CALL' syntax
+            var getcomment = await _context.GetComment
+                .FromSqlRaw("CALL GetComment({0},{1})", commentguid, userguid)
+                .ToListAsync();
+
+            if (getcomment.Count == 0)
+                return NotFound();
+
+            // Generate Azure Blob Storage profile image URLs
+            await _blobImageService.PopulateImageUrlsAsync(
+                getcomment,
+                "profile-images",
+                record => record.profileimagekey,
+                (record, url) => record.profileimageurl = url);
+
+            // return results
+            return Ok(getcomment);
         }
 
         /******************************************************************************/
@@ -545,49 +688,6 @@ namespace intellectualconversationforumAPI.Controllers
             return Ok(new { message = "Comment successfully deleted" });
         }
 
-        [HttpGet(Name = "GetPost")]
-        public async Task<ActionResult<IEnumerable<GetPost>>> GetPost(string postguid, string userguid)
-        {
-            // Define the parameter to prevent SQL Injection
-            var guidIn = new MySqlParameter("@guidIn", postguid);
-
-            // MySQL utilizes the 'CALL' syntax
-            var getpost = await _context.GetPost
-                .FromSqlRaw("CALL GetPost({0},{1})", guidIn, userguid)
-                .ToListAsync();
-
-            if (getpost.Count == 0)
-                return NotFound();
-
-            // Generate Azure Blob Storage profile image URLs
-            await _blobImageService.PopulateImageUrlsAsync(
-                getpost,
-                "profile-images",
-                record => record.profileimagekey,
-                (record, url) => record.profileimageurl = url);
-
-            // return results
-            return Ok(getpost);
-        }
-
-        [HttpGet(Name = "GetPostRatings")]
-        public async Task<ActionResult<IEnumerable<GetPostRatings>>> GetPostRatings(string postguid)
-        {
-            // Define the parameter to prevent SQL Injection
-            var postguidIn = new MySqlParameter("@postguidIn", postguid);
-
-            // MySQL utilizes the 'CALL' syntax
-            var getpostratings = await _context.GetPostRatings
-                .FromSqlRaw("CALL GetPostRatings({0})", postguidIn)
-                .ToListAsync();
-
-            if (getpostratings.Count == 0)
-                return NotFound();
-
-            // return results
-            return Ok(getpostratings);
-        }        
-
         [HttpPost(Name = "UpdatePost")]
         public async Task<ActionResult> UpdatePost(string postguid, [FromBody] FormUpdatePost model)
         {
@@ -688,31 +788,6 @@ namespace intellectualconversationforumAPI.Controllers
                 }
             }
 
-        }
-
-        [HttpGet(Name = "GetComment")]
-        public async Task<ActionResult<IEnumerable<GetComment>>> GetComment(string commentguid)
-        {
-            // Define the parameter to prevent SQL Injection
-            var guid = new MySqlParameter("@guid", commentguid);
-
-            // MySQL utilizes the 'CALL' syntax
-            var getcomment = await _context.GetComment
-                .FromSqlRaw("CALL GetComment({0})", commentguid)
-                .ToListAsync();
-
-            if (getcomment.Count == 0)
-                return NotFound();
-
-            // Generate Azure Blob Storage profile image URLs
-            await _blobImageService.PopulateImageUrlsAsync(
-                getcomment,
-                "profile-images",
-                record => record.profileimagekey,
-                (record, url) => record.profileimageurl = url);
-
-            // return results
-            return Ok(getcomment);
         }
 
         [HttpPost(Name = "UpdateComment")]

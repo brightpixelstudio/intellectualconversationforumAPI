@@ -45,6 +45,7 @@
         
         public DbSet<FormPostNew> FormPostNew { get; set; }
         public DbSet<GetPost> GetPost { get; set; }
+        public DbSet<PostImage> PostImage { get; set; }
         public DbSet<GetComment> GetComment { get; set; }
 
         // utilities
