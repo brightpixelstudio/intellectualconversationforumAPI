@@ -124,7 +124,7 @@ namespace intellectualconversationAPI.Controllers
 
                 new Claim(
                     "userid",
-                    member.userid.ToString())
+                    member.userid.ToString()),
 
                 new Claim(
                     "usertypeid",
