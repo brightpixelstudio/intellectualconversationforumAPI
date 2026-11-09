@@ -187,7 +187,6 @@ namespace intellectualconversationforumAPI.Controllers
         [HttpGet(Name = "GetProfileMember")]
         public async Task<IActionResult> GetProfileMember(string userGuid)
         {
-            // Prevent SQL injection by using a parameter.
             var guidIn = new MySqlParameter("@guidIn", userGuid);
 
             var getprofile = await _context.GetProfileMember
@@ -210,6 +209,8 @@ namespace intellectualconversationforumAPI.Controllers
                 member.userid,
                 member.usertypeid,
                 member.type,
+                member.accountstatusid,
+                member.accountstatus,
                 member.name,
                 member.username,
                 member.email,
@@ -219,7 +220,6 @@ namespace intellectualconversationforumAPI.Controllers
                 member.datelastpost,
                 member.datelastlogin,
                 member.dateadded,
-                member.blocked,
                 member.profileimagekey,
                 profileimageurl = member.profileimageurl
             });

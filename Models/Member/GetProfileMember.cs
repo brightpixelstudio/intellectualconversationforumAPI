@@ -5,11 +5,12 @@ namespace intellectualconversationAPI.Models.Member
 {
     public class GetProfileMember
     {
-
         [Key]
         public int userid { get; set; }
         public int usertypeid { get; set; }
         public string? type { get; set; }
+        public int accountstatusid { get; set; }
+        public string? accountstatus { get; set; }
         public string? name { get; set; }
         public string? username { get; set; }
         public string? email { get; set; }
@@ -19,8 +20,7 @@ namespace intellectualconversationAPI.Models.Member
         public DateTime? datelastpost { get; set; }
         public DateTime datelastlogin { get; set; }
         public DateTime dateadded { get; set; }
-        public sbyte blocked{ get; set; }
         public string? profileimagekey { get; set; }
         public string? profileimageurl { get; set; }
     }
-}
+ }

@@ -11,7 +11,7 @@ namespace intellectualconversationAPI.Models
         public string username { get; set; } = string.Empty;
         public string email { get; set; } = string.Empty;
         public string password { get; set; } = string.Empty;
-        public bool blocked { get; set; }
-        public DateTime? suspended { get; set; }
+        public int accountstatusid { get; set; }
+        public string accountstatus { get; set; } = string.Empty;
     }
 }

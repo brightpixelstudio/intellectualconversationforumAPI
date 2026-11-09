@@ -80,6 +80,18 @@ namespace intellectualconversationforumAPI.Controllers
                 // Result set 1: Posts
                 while (await reader.ReadAsync())
                 {
+                    var usertypeOrdinal = reader.GetOrdinal("usertypeid");
+                    var typeOrdinal = reader.GetOrdinal("type");
+
+                    var debugUsertypeId = reader.IsDBNull(usertypeOrdinal)
+                        ? -1
+                        : reader.GetInt32(usertypeOrdinal);
+
+                    var debugType = reader.IsDBNull(typeOrdinal)
+                        ? "SQL NULL"
+                        : reader.GetString(typeOrdinal);
+
+
                     getrecords.Add(new GetPostsByCategoryUserRating
                     {
                         postid = reader.GetInt32(reader.GetOrdinal("postid")),
@@ -105,6 +117,8 @@ namespace intellectualconversationforumAPI.Controllers
                             ? null
                             : Convert.ToInt32(reader["userrating"]),
                         commentsclosed = Convert.ToSByte(reader["commentsclosed"]),
+                        usertypeid = reader.GetInt32(reader.GetOrdinal("usertypeid")),
+                        type = reader.GetString(reader.GetOrdinal("type")),
                     });
                 }
 
@@ -213,7 +227,9 @@ namespace intellectualconversationforumAPI.Controllers
                             ? null
                             : Convert.ToInt32(reader["userrating"]),
 
-                        commentsclosed = Convert.ToSByte(reader["commentsclosed"])
+                        commentsclosed = Convert.ToSByte(reader["commentsclosed"]),
+                        usertypeid = reader.GetInt32(reader.GetOrdinal("usertypeid")),
+                        type = reader.GetString(reader.GetOrdinal("type"))
                     });
                 }
 
@@ -821,15 +837,284 @@ namespace intellectualconversationforumAPI.Controllers
         [HttpDelete(Name = "DeletePost")]
         public async Task<ActionResult> DeletePost(string guid)
         {
-            // Define the parameter to prevent SQL Injection
-            var guidIn = new MySqlParameter("@guidIn", guid);
+            var connection = (MySqlConnection)_context.Database.GetDbConnection();
+            bool openedConnection = false;
 
-            // add the record
-            var affectedRows = _context.Database.ExecuteSqlRaw(
-                "CALL DeletePost({0})", guidIn);
+            List<string> imageKeys = new();
 
-            return Ok(new { message = "Post successfully deleted" });
+            try
+            {
+                if (connection.State != System.Data.ConnectionState.Open)
+                {
+                    await connection.OpenAsync();
+                    openedConnection = true;
+                }
+
+                // 1. Retrieve all Azure blob keys before deleting the post
+                await using (var command = new MySqlCommand("GetPostImageKeys", connection))
+                {
+                    command.CommandType = System.Data.CommandType.StoredProcedure;
+                    command.Parameters.AddWithValue("@guidIn", guid);
+
+                    await using var reader = await command.ExecuteReaderAsync();
+
+                    while (await reader.ReadAsync())
+                    {
+                        imageKeys.Add(reader.GetString(0));
+                    }
+                }
+
+                // 2. Delete the post using the existing stored procedure
+                await using (var command = new MySqlCommand("DeletePost", connection))
+                {
+                    command.CommandType = System.Data.CommandType.StoredProcedure;
+                    command.Parameters.AddWithValue("@guidIn", guid);
+
+                    await command.ExecuteNonQueryAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting post {PostGuid}.", guid);
+
+                return StatusCode(500, new
+                {
+                    message = "An error occurred while deleting the post."
+                });
+            }
+            finally
+            {
+                if (openedConnection)
+                    await connection.CloseAsync();
+            }
+
+            // 3. Delete the Azure blobs after the database deletion succeeds
+            int failedDeletions = 0;
+
+            foreach (string imageKey in imageKeys)
+            {
+                try
+                {
+                    await _blobImageService.DeleteImageAsync(imageKey,"post-images");
+                }
+                catch (Exception ex)
+                {
+                    failedDeletions++;
+
+                    _logger.LogError(
+                        ex,
+                        "Failed to delete Azure post image {ImageKey} for post {PostGuid}.",
+                        imageKey,
+                        guid);
+                }
+            }
+
+            // 4. Return the result
+            if (failedDeletions > 0)
+            {
+                return Ok(new
+                {
+                    message = "Post deleted, but some images could not be removed from storage.",
+                    failedImageDeletions = failedDeletions
+                });
+            }
+
+            return Ok(new
+            {
+                message = "Post and associated images successfully deleted."
+            });
         }
+
+        [HttpPost(Name = "AddPostImage")]
+        public async Task<ActionResult> AddPostImage(
+            [FromForm] string postguid,
+            [FromForm] IFormFile image)
+        {
+            if (string.IsNullOrWhiteSpace(postguid))
+                return BadRequest(new { message = "Post GUID is required." });
+
+            if (image == null || image.Length == 0)
+                return BadRequest(new { message = "An image is required." });
+
+            var imageValidation = await _validateImageService.ValidateImagesAsync(
+                new List<IFormFile> { image },
+                1,
+                1024 * 1024);
+
+            if (imageValidation != null)
+                return BadRequest(new { message = imageValidation });
+
+            string? uploadedBlobKey = null;
+
+            var connection = (MySqlConnection)_context.Database.GetDbConnection();
+            bool openedConnection = false;
+
+            try
+            {
+                if (connection.State != System.Data.ConnectionState.Open)
+                {
+                    await connection.OpenAsync();
+                    openedConnection = true;
+                }
+
+                await using var transaction = await connection.BeginTransactionAsync();
+
+                try
+                {
+                    uploadedBlobKey = await _blobImageService.UploadImageAsync(
+                        image,
+                        "post-images");
+
+                    await using var command = new MySqlCommand(
+                        "InsertPostImage",
+                        connection,
+                        transaction);
+
+                    command.CommandType = System.Data.CommandType.StoredProcedure;
+
+                    command.Parameters.AddWithValue("@guidIn", postguid);
+                    command.Parameters.AddWithValue("@postimagekeyIn", uploadedBlobKey);
+
+                    var resultOut = new MySqlParameter(
+                        "@resultOut",
+                        MySqlDbType.Int32)
+                    {
+                        Direction = System.Data.ParameterDirection.Output
+                    };
+
+                    command.Parameters.Add(resultOut);
+
+                    await command.ExecuteNonQueryAsync();
+
+                    int resultCode = Convert.ToInt32(resultOut.Value);
+
+                    if (resultCode != 1)
+                        throw new Exception($"InsertPostImage failed. Result: {resultCode}");
+
+                    await transaction.CommitAsync();
+
+                    return Ok(new
+                    {
+                        message = "Post image successfully added."
+                    });
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                if (!string.IsNullOrWhiteSpace(uploadedBlobKey))
+                {
+                    try
+                    {
+                        await _blobImageService.DeleteImageAsync(
+                            uploadedBlobKey,
+                            "post-images");
+                    }
+                    catch (Exception cleanupException)
+                    {
+                        _logger.LogError(
+                            cleanupException,
+                            "Failed to clean up uploaded post image {BlobKey}.",
+                            uploadedBlobKey);
+                    }
+                }
+
+                _logger.LogError(ex, "Error adding post image.");
+
+                return StatusCode(500, new
+                {
+                    message = "An error occurred while adding the post image."
+                });
+            }
+            finally
+            {
+                if (openedConnection)
+                    await connection.CloseAsync();
+            }
+        }
+
+        [HttpDelete(Name = "DeletePostImage")]
+        public async Task<ActionResult> DeletePostImage(
+            string postguid,
+            int postimageid)
+        {
+            var connection = (MySqlConnection)_context.Database.GetDbConnection();
+            bool openedConnection = false;
+
+            try
+            {
+                if (connection.State != System.Data.ConnectionState.Open)
+                {
+                    await connection.OpenAsync();
+                    openedConnection = true;
+                }
+
+                await using var command = new MySqlCommand(
+                    "DeletePostImage", connection);
+
+                command.CommandType = System.Data.CommandType.StoredProcedure;
+
+                command.Parameters.AddWithValue("@guidIn", postguid);
+                command.Parameters.AddWithValue("@postimageidIn", postimageid);
+
+                var imageKeyOut = new MySqlParameter(
+                    "@postimagekeyOut", MySqlDbType.VarChar, 500)
+                {
+                    Direction = System.Data.ParameterDirection.Output
+                };
+
+                var resultOut = new MySqlParameter(
+                    "@resultOut", MySqlDbType.Int32)
+                {
+                    Direction = System.Data.ParameterDirection.Output
+                };
+
+                command.Parameters.Add(imageKeyOut);
+                command.Parameters.Add(resultOut);
+
+                await command.ExecuteNonQueryAsync();
+
+                int resultCode = Convert.ToInt32(resultOut.Value);
+
+                if (resultCode == -1)
+                    return NotFound(new { message = "Post not found." });
+
+                if (resultCode == -2)
+                    return NotFound(new { message = "Post image not found." });
+
+                if (resultCode != 1)
+                    throw new Exception("Unable to delete post image.");
+
+                string imageKey = imageKeyOut.Value?.ToString() ?? "";
+
+                if (string.IsNullOrWhiteSpace(imageKey))
+                    throw new Exception("The image key was not returned.");
+
+                await _blobImageService.DeleteImageAsync(
+                    imageKey,
+                    "post-images");
+
+                return Ok(new { message = "Post image successfully deleted." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting post image.");
+                return StatusCode(500, new
+                {
+                    message = "An error occurred while deleting the post image."
+                });
+            }
+            finally
+            {
+                if (openedConnection)
+                    await connection.CloseAsync();
+            }
+        }
+
 
         [HttpDelete(Name = "DeleteComment")]
         public async Task<ActionResult> DeleteComment(string guid)

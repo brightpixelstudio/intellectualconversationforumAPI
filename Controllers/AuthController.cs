@@ -57,8 +57,8 @@ namespace intellectualconversationAPI.Controllers
                 });
             }
 
-            // Reject blocked or suspended accounts.
-            if (member.blocked || member.suspended.HasValue)
+            // Reject accounts that are not active.
+            if (member.accountstatusid != 1)
             {
                 return Unauthorized(new
                 {

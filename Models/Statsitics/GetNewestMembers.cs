@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 namespace intellectualconversationAPI.Models.Statsitics
 {
     public class GetNewestMembers
-    {         
+    {
         [Key]
         public int userid { get; set; }
         public string? userguid { get; set; }
@@ -13,12 +13,13 @@ namespace intellectualconversationAPI.Models.Statsitics
         public string? name { get; set; }
         public int zipcode { get; set; }
         public int usertypeid { get; set; }
-        public string type { get; set; }        
+        public string type { get; set; } = string.Empty;
+        public int accountstatusid { get; set; }
+        public string? accountstatus { get; set; }
         public DateTime dateadded { get; set; }
         public DateTime datelastlogin { get; set; }
         public int count { get; set; }
         public string? profile { get; set; }
-        public bool blocked { get; set; }
         public string? profileimagekey { get; set; }
         public string? profileimageurl { get; set; }
     }

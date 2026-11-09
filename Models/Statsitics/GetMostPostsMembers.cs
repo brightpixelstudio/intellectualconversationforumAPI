@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 namespace intellectualconversationAPI.Models.Statsitics
 {
     public class GetMostPostsMembers
-    {         
+    {
         [Key]
         public int userid { get; set; }
         public string? userguid { get; set; }
@@ -16,9 +16,11 @@ namespace intellectualconversationAPI.Models.Statsitics
         public DateTime dateadded { get; set; }
         public DateTime datelastlogin { get; set; }
         public int count { get; set; }
-        public sbyte blocked{ get; set; }
         public string? profileimagekey { get; set; }
         public string? profileimageurl { get; set; }
+        public int accountstatusid { get; set; }
+        public string? accountstatus { get; set; }
 
     }
+
 }
