@@ -25,6 +25,9 @@ namespace intellectualconversationAPI.Models.Posts
         public sbyte commentsclosed { get; set; }
         public int usertypeid { get; set; }
         public string? type { get; set; }
+        public bool ispinned { get; set; }
+        public DateTime? datepinned { get; set; }
+        public int? pinnedbyuserid { get; set; }
 
         public List<PostImage> postimages { get; set; } = new();
     }

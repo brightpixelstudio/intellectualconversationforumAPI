@@ -119,6 +119,14 @@ namespace intellectualconversationforumAPI.Controllers
                         commentsclosed = Convert.ToSByte(reader["commentsclosed"]),
                         usertypeid = reader.GetInt32(reader.GetOrdinal("usertypeid")),
                         type = reader.GetString(reader.GetOrdinal("type")),
+                        ispinned = reader.GetBoolean(reader.GetOrdinal("ispinned")),
+                        datepinned = reader.IsDBNull(reader.GetOrdinal("datepinned"))
+                            ? null
+                            : reader.GetDateTime(reader.GetOrdinal("datepinned")),
+                        pinnedbyuserid = reader.IsDBNull(reader.GetOrdinal("pinnedbyuserid"))
+                            ? null
+                            : reader.GetInt32(reader.GetOrdinal("pinnedbyuserid")),
+
                     });
                 }
 
@@ -168,6 +176,7 @@ namespace intellectualconversationforumAPI.Controllers
                     await connection.CloseAsync();
             }
         }
+
         [HttpGet(Name = "GetPostsMyFeed")]
         public async Task<ActionResult<IEnumerable<GetPostsByCategoryUserRating>>>
             getPostsMyFeed(string? userGuid)
@@ -229,7 +238,14 @@ namespace intellectualconversationforumAPI.Controllers
 
                         commentsclosed = Convert.ToSByte(reader["commentsclosed"]),
                         usertypeid = reader.GetInt32(reader.GetOrdinal("usertypeid")),
-                        type = reader.GetString(reader.GetOrdinal("type"))
+                        type = reader.GetString(reader.GetOrdinal("type")),
+                        ispinned = reader.GetBoolean(reader.GetOrdinal("ispinned")),
+                        datepinned = reader.IsDBNull(reader.GetOrdinal("datepinned"))
+                            ? null
+                            : reader.GetDateTime(reader.GetOrdinal("datepinned")),
+                        pinnedbyuserid = reader.IsDBNull(reader.GetOrdinal("pinnedbyuserid"))
+                            ? null
+                            : reader.GetInt32(reader.GetOrdinal("pinnedbyuserid")),
                     });
                 }
 
