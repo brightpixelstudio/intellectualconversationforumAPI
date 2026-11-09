@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 using System.Data;
 using Azure.Storage.Blobs;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace intellectualconversationforumAPI.Controllers
 {
@@ -36,13 +38,7 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpGet(Name = "GetPostsByCategoryUserRating")]
-        public async Task<ActionResult<IEnumerable<GetPostsByCategoryUserRating>>>
-            GetPostsByCategoryUserRating(
-                int? postcatagoryId,
-                string? userGuid,
-                float? rating,
-                string? searchString,
-                string userloginguid)
+        public async Task<ActionResult<IEnumerable<GetPostsByCategoryUserRating>>> GetPostsByCategoryUserRating(int? postcatagoryId, string? userGuid, float? rating, string? searchString, string userloginguid)
         {
             var connection = _context.Database.GetDbConnection();
 
@@ -178,8 +174,7 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpGet(Name = "GetPostsMyFeed")]
-        public async Task<ActionResult<IEnumerable<GetPostsByCategoryUserRating>>>
-            getPostsMyFeed(string? userGuid)
+        public async Task<ActionResult<IEnumerable<GetPostsByCategoryUserRating>>> getPostsMyFeed(string? userGuid)
         {
             var connection = _context.Database.GetDbConnection();
 
@@ -297,9 +292,7 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpGet(Name = "GetPost")]
-        public async Task<ActionResult<IEnumerable<GetPost>>> GetPost(
-            string postguid,
-            string userguid)
+        public async Task<ActionResult<IEnumerable<GetPost>>> GetPost( string postguid, string userguid)
         {
             var connection = _context.Database.GetDbConnection();
             bool connectionOpened = connection.State != ConnectionState.Open;
@@ -392,7 +385,6 @@ namespace intellectualconversationforumAPI.Controllers
 
             return Ok(new[] { post });
         }
-
 
         [HttpGet(Name = "GetPostRatings")]
         public async Task<ActionResult<IEnumerable<GetPostRatings>>> GetPostRatings(string postguid)
@@ -511,9 +503,7 @@ namespace intellectualconversationforumAPI.Controllers
         /******************************************************************************/
 
         [HttpPost(Name = "AddPost")]
-        public async Task<ActionResult> AddPost(
-            [FromForm] FormPostNew model,
-            [FromForm] List<IFormFile>? images)
+        public async Task<ActionResult> AddPost( [FromForm] FormPostNew model,[FromForm] List<IFormFile>? images)
         {
             if (!ModelState.IsValid)
             {
@@ -850,6 +840,7 @@ namespace intellectualconversationforumAPI.Controllers
                 }
             }
         }
+
         [HttpDelete(Name = "DeletePost")]
         public async Task<ActionResult> DeletePost(string guid)
         {
@@ -942,9 +933,7 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpPost(Name = "AddPostImage")]
-        public async Task<ActionResult> AddPostImage(
-            [FromForm] string postguid,
-            [FromForm] IFormFile image)
+        public async Task<ActionResult> AddPostImage([FromForm] string postguid, [FromForm] IFormFile image)
         {
             if (string.IsNullOrWhiteSpace(postguid))
                 return BadRequest(new { message = "Post GUID is required." });
@@ -1054,9 +1043,7 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpDelete(Name = "DeletePostImage")]
-        public async Task<ActionResult> DeletePostImage(
-            string postguid,
-            int postimageid)
+        public async Task<ActionResult> DeletePostImage( string postguid, int postimageid)
         {
             var connection = (MySqlConnection)_context.Database.GetDbConnection();
             bool openedConnection = false;
@@ -1130,7 +1117,6 @@ namespace intellectualconversationforumAPI.Controllers
                     await connection.CloseAsync();
             }
         }
-
 
         [HttpDelete(Name = "DeleteComment")]
         public async Task<ActionResult> DeleteComment(string guid)
@@ -1349,6 +1335,79 @@ namespace intellectualconversationforumAPI.Controllers
                 {
                     await connection.CloseAsync();
                 }
+            }
+        }
+
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> PinPost(string postguid)
+        {
+            if (!Guid.TryParse(postguid, out _))
+                return BadRequest(new { message = "Invalid post GUID." });
+
+            var userIdClaim = User.FindFirst("userid")?.Value;
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                return Unauthorized();
+
+            // Verify the user's current role in the database.
+            var userTypeId = await _context.Database
+                .SqlQueryRaw<int>("CALL GetUserTypeById({0})", userId)
+                .FirstOrDefaultAsync();
+
+            if (userTypeId != 1)
+                return Forbid();
+
+            try
+            {
+                await _context.Database.ExecuteSqlRawAsync(
+                    "CALL PinPost({0}, {1})",
+                    postguid,
+                    userId);
+
+                return Ok(new { message = "Post pinned successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error pinning post {PostGuid}", postguid);
+
+                return StatusCode(500, new { message = "Unable to pin post." });
+            }
+        }
+
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> UnpinPost(string postguid)
+        {
+            if (!Guid.TryParse(postguid, out _))
+                return BadRequest(new { message = "Invalid post GUID." });
+
+            var userIdClaim = User.FindFirst("userid")?.Value;
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                return Unauthorized();
+
+            // Verify the user's current role in the database.
+            var userTypeId = await _context.Database
+                .SqlQueryRaw<int>("CALL GetUserTypeById({0})",userId)
+                .FirstOrDefaultAsync();
+
+            if (userTypeId != 1)
+                return Forbid();
+
+            try
+            {
+                await _context.Database.ExecuteSqlRawAsync(
+                    "CALL UnpinPost({0})",
+                    postguid);
+
+                return Ok(new { message = "Post unpinned successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error unpinning post {PostGuid}", postguid);
+
+                return StatusCode(500, new { message = "Unable to unpin post." });
             }
         }
     }
