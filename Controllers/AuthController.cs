@@ -125,6 +125,10 @@ namespace intellectualconversationAPI.Controllers
                 new Claim(
                     "userid",
                     member.userid.ToString())
+
+                new Claim(
+                    "usertypeid",
+                    member.usertypeid.ToString())
             };
 
             var jwt = new JwtSecurityToken(
@@ -143,7 +147,8 @@ namespace intellectualconversationAPI.Controllers
                 token,
                 expiresAt = expires,
                 userGuid = member.guid,
-                username = member.username
+                username = member.username,
+                usertypeid = member.usertypeid
             });
         }
     }

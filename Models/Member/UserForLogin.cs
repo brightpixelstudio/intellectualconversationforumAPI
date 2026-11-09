@@ -12,6 +12,7 @@ namespace intellectualconversationAPI.Models
         public string email { get; set; } = string.Empty;
         public string password { get; set; } = string.Empty;
         public int accountstatusid { get; set; }
+        public int usertypeid { get; set; }
         public string accountstatus { get; set; } = string.Empty;
     }
 }
