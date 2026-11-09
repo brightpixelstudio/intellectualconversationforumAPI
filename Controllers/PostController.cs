@@ -9,6 +9,7 @@ using System.Data;
 using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using IntellectualConversationForumAPI.Enums;
 
 namespace intellectualconversationforumAPI.Controllers
 {
@@ -1342,21 +1343,10 @@ namespace intellectualconversationforumAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> PinPost(string postguid)
         {
-            if (!Guid.TryParse(postguid, out _))
-                return BadRequest(new { message = "Invalid post GUID." });
-
             var userIdClaim = User.FindFirst("userid")?.Value;
 
             if (!int.TryParse(userIdClaim, out int userId))
                 return Unauthorized();
-
-            // Verify the user's current role in the database.
-            var userTypeId = await _context.Database
-                .SqlQueryRaw<int>("CALL GetUserTypeById({0})", userId)
-                .FirstOrDefaultAsync();
-
-            if (userTypeId != 1)
-                return Forbid();
 
             try
             {
@@ -1379,22 +1369,6 @@ namespace intellectualconversationforumAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> UnpinPost(string postguid)
         {
-            if (!Guid.TryParse(postguid, out _))
-                return BadRequest(new { message = "Invalid post GUID." });
-
-            var userIdClaim = User.FindFirst("userid")?.Value;
-
-            if (!int.TryParse(userIdClaim, out int userId))
-                return Unauthorized();
-
-            // Verify the user's current role in the database.
-            var userTypeId = await _context.Database
-                .SqlQueryRaw<int>("CALL GetUserTypeById({0})",userId)
-                .FirstOrDefaultAsync();
-
-            if (userTypeId != 1)
-                return Forbid();
-
             try
             {
                 await _context.Database.ExecuteSqlRawAsync(
