@@ -388,13 +388,16 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [HttpGet(Name = "GetPostRatings")]
-        public async Task<ActionResult<IEnumerable<GetPostRatings>>> GetPostRatings(string postguid)
+        public async Task<ActionResult<IEnumerable<GetRatings>>> GetPostRatings(string postguid)
         {
+            if (!Guid.TryParse(postguid, out _))
+                return BadRequest(new { message = "Invalid post GUID." });
+
             // Define the parameter to prevent SQL Injection
             var postguidIn = new MySqlParameter("@postguidIn", postguid);
 
             // MySQL utilizes the 'CALL' syntax
-            var getpostratings = await _context.GetPostRatings
+            var getpostratings = await _context.GetRatings
                 .FromSqlRaw("CALL GetPostRatings({0})", postguidIn)
                 .ToListAsync();
 
@@ -404,6 +407,27 @@ namespace intellectualconversationforumAPI.Controllers
             // return results
             return Ok(getpostratings);
         }
+
+        public async Task<ActionResult<IEnumerable<GetRatings>>> GetCommentRatings(string commentguid)
+        {
+            if (!Guid.TryParse(commentguid, out _))
+                return BadRequest(new { message = "Invalid comment GUID." });
+            
+            // Define the parameter to prevent SQL Injection
+            var commentguidIn = new MySqlParameter("@commentguidIn", commentguid);
+
+            // MySQL utilizes the CALL syntax
+            var getcommentratings = await _context.GetRatings
+                .FromSqlRaw("CALL GetCommentRatings({0})", commentguidIn)
+                .ToListAsync();
+
+            if (getcommentratings.Count == 0)
+                return NotFound();
+
+            // Return results
+            return Ok(getcommentratings);
+        }
+
 
         [HttpGet(Name = "GetPostComments")]
         public async Task<ActionResult<IEnumerable<GetPostComments>>> GetPostComments(string postGuid, string userguid)

@@ -3,12 +3,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace intellectualconversationAPI.Models.Member
 {
-    public class GetUserList
+    public class GetAccountStatuses
     {
         [Key]
-        public int userid { get; set; }
-        public string? userguid { get; set; }
-        public string? name { get; set; }
         public int accountstatusid { get; set; }
         public string? accountstatus { get; set; }
     }

@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace intellectualconversationAPI.Models.Posts
 {
-    public class GetPostRatings
+    public class GetRatings
     {
         [Key]
         public int userid { get; set; }

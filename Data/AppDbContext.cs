@@ -4,8 +4,9 @@
     using intellectualconversationAPI.Models.Posts;
     using intellectualconversationAPI.Models.Member;
     using intellectualconversationAPI.Models.Statsitics;
+    using intellectualconversationAPI.Models.Administration;
     using Microsoft.EntityFrameworkCore;
-   
+    
 
     public class AppDbContext : DbContext
     {
@@ -22,6 +23,7 @@
         public DbSet<GetAllProfileMembers> GetAllProfileMembers { get; set; }
         public DbSet<FormRegistration> FormRegistration { get; set; }
         public DbSet<GetUserList> GetUserList { get; set; }
+        public DbSet<GetAccountStatuses> GetAccountStatuses { get; set; }        
         public DbSet<UserForLogin> UserForLogin { get; set; }
 
         // users settings
@@ -41,8 +43,8 @@
         // posts
         public DbSet<GetPostsByCategoryUserRating> GetPostsByCategoryUserRating { get; set; }
         public DbSet<GetPostComments> GetPostComments { get; set; }
-        public DbSet<GetPostRatings> GetPostRatings { get; set; }
-        
+        public DbSet<GetRatings> GetRatings { get; set; }
+
         public DbSet<FormPostNew> FormPostNew { get; set; }
         public DbSet<GetPost> GetPost { get; set; }
         public DbSet<PostImage> PostImage { get; set; }
@@ -52,5 +54,8 @@
         public DbSet<IsEmailAndUsernameUsed> IsEmailAndUsernameUsed { get; set; }
         public DbSet<GetCatagoryList> GetCatagoryList { get; set; }
         public DbSet<GetVerifyZipcode> GetVerifyZipcode { get; set; }
+
+        // admin
+
     }
 }

@@ -19,7 +19,6 @@ namespace intellectualconversationAPI.Models.Statsitics
         public string? shorttextpost { get; set; }
         public int count { get; set; }
         public float rating { get; set; }
-        public sbyte commentsclosed { get; set; }
 
     }
 }

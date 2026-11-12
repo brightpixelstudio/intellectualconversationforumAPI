@@ -245,7 +245,6 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
 
-
         [HttpGet(Name = "GetUserList")]
         public async Task<ActionResult<IEnumerable<GetUserList>>> GetUserList()
         {
@@ -259,6 +258,21 @@ namespace intellectualconversationforumAPI.Controllers
 
             // return results
             return Ok(getUsers);
+        }
+
+        [HttpGet(Name = "GetAccountStatuses")]
+        public async Task<ActionResult<IEnumerable<GetAccountStatuses>>> GetAccountStatuses()
+        {
+            // MySQL utilizes the 'CALL' syntax
+            var getRecords = await _context.GetAccountStatuses
+                .FromSqlRaw("CALL GetAccountStatuses()")
+                .ToListAsync();
+
+            if (getRecords.Count == 0)
+                return NotFound();
+
+            // return results
+            return Ok(getRecords);
         }
 
 
