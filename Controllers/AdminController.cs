@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using intellectualconversationAPI.Data;
 using IntellectualConversationForumAPI.Enums;
 using intellectualconversationAPI.Models.Administration;
+using intellectualconversationforumAPI.Models.Administration;
 
 namespace intellectualconversationforumAPI.Controllers
 {
@@ -153,5 +154,152 @@ namespace intellectualconversationforumAPI.Controllers
                     new { message = "Unable to search members." });
             }
         }
+
+        [Authorize]
+        [HttpPut("UpdateAccountStatus")]
+        public async Task<IActionResult> UpdateAccountStatus(
+            [FromBody] UpdateAccountStatusRequest model)
+        {
+            if (model.userid <= 0)
+            {
+                return BadRequest(new { message = "Invalid member ID." });
+            }
+
+            int userId = model.userid;
+
+            if (model.accountstatusid <= 0)
+            {
+                return BadRequest(new { message = "Invalid account status." });
+            }
+
+            if (string.IsNullOrWhiteSpace(model.reason) ||
+                model.reason.Trim().Length > 1000)
+            {
+                return BadRequest(new
+                {
+                    message = "A reason is required (maximum 1000 characters)."
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(model.reason) ||
+                model.reason.Trim().Length < 20 )
+            {
+                return BadRequest(new
+                {
+                    message = "A reason is required to have 20 characters."
+                });
+            }
+
+            // Get administrator ID from JWT.
+            var adminIdClaim = User.FindFirst("userid")?.Value;
+
+            if (!int.TryParse(adminIdClaim, out int adminId))
+                return Unauthorized();
+
+            var connection = _context.Database.GetDbConnection();
+            bool openedHere = connection.State != System.Data.ConnectionState.Open;
+
+            try
+            {
+                if (openedHere)
+                    await connection.OpenAsync();
+
+                // Verify current administrator role in database.
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "CALL GetUserTypeById(@userid);";
+
+                    var parameter = command.CreateParameter();
+                    parameter.ParameterName = "@userid";
+                    parameter.Value = adminId;
+                    command.Parameters.Add(parameter);
+
+                    var result = await command.ExecuteScalarAsync();
+
+                    if (result == null || result == DBNull.Value ||
+                        Convert.ToInt32(result) != (int)UserType.Admin)
+                    {
+                        return Forbid();
+                    }
+                }
+
+                // Resolve target member's internal ID.
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "SELECT userid FROM `user` WHERE userid = @userid LIMIT 1;";
+
+                    var parameter = command.CreateParameter();
+                    parameter.ParameterName = "@userid";
+                    parameter.Value = model.userid;
+                    command.Parameters.Add(parameter);
+
+                    var result = await command.ExecuteScalarAsync();
+
+                    if (result == null || result == DBNull.Value)
+                        return NotFound(new { message = "Member not found." });
+
+                    userId = Convert.ToInt32(result);
+                }
+
+                // Verify account status exists.
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "SELECT COUNT(*) FROM accountstatus WHERE accountstatusid = @statusid;";
+
+                    var parameter = command.CreateParameter();
+                    parameter.ParameterName = "@statusid";
+                    parameter.Value = model.accountstatusid;
+                    command.Parameters.Add(parameter);
+
+                    var result = await command.ExecuteScalarAsync();
+
+                    if (Convert.ToInt32(result) == 0)
+                    {
+                        return BadRequest(new
+                        {
+                            message = "Account status does not exist."
+                        });
+                    }
+                }
+
+                // Update account status and insert history.
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "CALL UpdateAccountStatus(" +
+                        "@userIdIn, @accountStatusIdIn, " +
+                        "@changedByUserIdIn, @reasonIn);";
+
+                    void AddParameter(string name, object value)
+                    {
+                        var parameter = command.CreateParameter();
+                        parameter.ParameterName = name;
+                        parameter.Value = value;
+                        command.Parameters.Add(parameter);
+                    }
+
+                    AddParameter("@userId", userId);
+                    AddParameter("@accountStatusIdIn", model.accountstatusid);
+                    AddParameter("@changedByUserIdIn", adminId);
+                    AddParameter("@reasonIn", model.reason.Trim());
+
+                    await command.ExecuteNonQueryAsync();
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Member account status updated successfully."
+                });
+            }
+            finally
+            {
+                if (openedHere && connection.State == System.Data.ConnectionState.Open)
+                    await connection.CloseAsync();
+            }
+        }
+
     }
 }
