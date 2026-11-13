@@ -20,5 +20,6 @@ namespace intellectualconversationAPI.Models.Member
         public string? commentshorttext { get; set; }
         public float rating { get; set; }
         public DateTime dateadded { get; set; }
+        public sbyte commentsclosed { get; set; }
     }
 }

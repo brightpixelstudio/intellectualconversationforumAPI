@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using intellectualconversationAPI.Data;
+using intellectualconversationAPI.Models.Administration;
+using intellectualconversationAPI.Models.Member;
+using intellectualconversationforumAPI.Models.Administration;
+using IntellectualConversationForumAPI.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using intellectualconversationAPI.Data;
-using IntellectualConversationForumAPI.Enums;
-using intellectualconversationAPI.Models.Administration;
-using intellectualconversationforumAPI.Models.Administration;
 
 namespace intellectualconversationforumAPI.Controllers
 {
@@ -156,7 +157,7 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [Authorize]
-        [HttpPut("UpdateAccountStatus")]
+        [HttpPost("UpdateAccountStatus")]
         public async Task<IActionResult> UpdateAccountStatus(
             [FromBody] UpdateAccountStatusRequest model)
         {
@@ -280,7 +281,7 @@ namespace intellectualconversationforumAPI.Controllers
                         command.Parameters.Add(parameter);
                     }
 
-                    AddParameter("@userId", userId);
+                    AddParameter("@userIdIn", userId);
                     AddParameter("@accountStatusIdIn", model.accountstatusid);
                     AddParameter("@changedByUserIdIn", adminId);
                     AddParameter("@reasonIn", model.reason.Trim());
@@ -300,6 +301,5 @@ namespace intellectualconversationforumAPI.Controllers
                     await connection.CloseAsync();
             }
         }
-
     }
 }

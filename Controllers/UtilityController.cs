@@ -1,8 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using intellectualconversationAPI.Data;
+﻿using intellectualconversationAPI.Data;
 using intellectualconversationAPI.Models;
+using intellectualconversationforumAPI.Models.Utilities;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
+using System.Data;
+using System.Reflection.Emit;
 
 namespace intellectualconversationforumAPI.Controllers
 {
@@ -51,6 +55,55 @@ namespace intellectualconversationforumAPI.Controllers
             // return results
             return Ok(getrecords);
         }
-        
+
+        [HttpPost(Name = "InsertCatagory")]
+        public async Task<IActionResult> InsertCatagory([FromBody] InsertCatagoryRequest model)
+        {
+            if (string.IsNullOrWhiteSpace(model.Catagory))
+                return BadRequest("Category is required.");
+
+            try
+            {
+                var connection = _context.Database.GetDbConnection();
+                await _context.Database.OpenConnectionAsync();
+
+                try
+                {
+                    using var command = connection.CreateCommand();
+                    command.CommandText = "CALL InsertCatagory(@catagoryIn);";
+
+                    var parameter = command.CreateParameter();
+                    parameter.ParameterName = "@catagoryIn";
+                    parameter.Value = model.Catagory.Trim();
+
+                    command.Parameters.Add(parameter);
+
+                    using var reader = await command.ExecuteReaderAsync();
+
+                    if (await reader.ReadAsync())
+                    {
+                        return Ok(new
+                        {
+                            postcatagoryid = reader.GetInt32("postcatagoryid"),
+                            catagory = reader.GetString("catagory")
+                        });
+                    }
+
+                    return StatusCode(500, "Category was not returned.");
+                }
+                finally
+                {
+                    await _context.Database.CloseConnectionAsync();
+                }
+            }
+            catch (MySqlException ex) when (ex.SqlState == "45000")
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "An error occurred while adding the category.");
+            }
+        }
     }
 }

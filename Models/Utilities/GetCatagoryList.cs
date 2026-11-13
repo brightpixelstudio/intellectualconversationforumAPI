@@ -8,5 +8,6 @@ namespace intellectualconversationAPI.Models
         [Key]
         public int postcatagoryid { get; set; }
         public string? catagory { get; set; }
+        public DateTime dateadded { get; set; }
     }
 }

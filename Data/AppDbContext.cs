@@ -17,6 +17,7 @@
         public DbSet<GetCommentsMember> GetCommentsMember { get; set; }
         public DbSet<GetPostRatingsMember> GetPostRatingsMember { get; set; }
         public DbSet<GetCommentRatingsMember> GetCommentRatingsMember { get; set; }
+        public DbSet<GetAccountStatusHistoryMember> GetAccountStatusHistoryMember { get; set; }        
         public DbSet<GetPostsWithMostCommentsMember> GetPostsWithMostCommentsMember { get; set; }
         public DbSet<GetProfileMember> GetProfileMember { get; set; }
         public DbSet<GetProfileMemberImage> GetProfileMemberImage { get; set; }        
@@ -44,7 +45,6 @@
         public DbSet<GetPostsByCategoryUserRating> GetPostsByCategoryUserRating { get; set; }
         public DbSet<GetPostComments> GetPostComments { get; set; }
         public DbSet<GetRatings> GetRatings { get; set; }
-
         public DbSet<FormPostNew> FormPostNew { get; set; }
         public DbSet<GetPost> GetPost { get; set; }
         public DbSet<PostImage> PostImage { get; set; }
@@ -56,6 +56,5 @@
         public DbSet<GetVerifyZipcode> GetVerifyZipcode { get; set; }
 
         // admin
-
     }
 }

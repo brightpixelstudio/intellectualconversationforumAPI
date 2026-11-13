@@ -168,6 +168,22 @@ namespace intellectualconversationforumAPI.Controllers
             return Ok(getcomments);
         }
 
+        [HttpGet(Name = "GetAccountStatusHistoryMember")]
+        public async Task<ActionResult<IEnumerable<GetAccountStatusHistoryMember>>> GetAccountStatusHistoryMember(string userguid)
+        {
+            // Define the parameter to prevent SQL Injection
+            var guidIn = new MySqlParameter("@guidIn", userguid);
+
+            // MySQL utilizes the 'CALL' syntax
+            var getcomments = await _context.GetAccountStatusHistoryMember
+                .FromSqlRaw("CALL GetAccountStatusHistoryMember({0})", guidIn)
+                .AsNoTracking()
+                .ToListAsync();
+
+            // return results
+            return Ok(getcomments);
+        }
+
         [HttpGet(Name = "GetPostsWithMostCommentsMember")]
         public async Task<ActionResult<IEnumerable<GetPostsWithMostCommentsMember>>> GetPostsWithMostCommentsMember(string userGuid)
         {
