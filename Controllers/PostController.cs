@@ -790,27 +790,22 @@ namespace intellectualconversationforumAPI.Controllers
                     openedConnection = true;
                 }
 
-                await using var command = new MySqlCommand(
-                    "InsertComment", connection);
-
+                await using var command = new MySqlCommand("InsertComment", connection);
                 command.CommandType = CommandType.StoredProcedure;
 
-                command.Parameters.AddWithValue(
-                    "@postGuidIn", postguid);
-
-                command.Parameters.AddWithValue(
-                    "@userGuidIn", model.userguid);
-
-                command.Parameters.AddWithValue(
-                    "@commentIn", model.comment);
-
-                var result = new MySqlParameter(
-                    "@resultIn", MySqlDbType.Int32)
+                command.Parameters.AddWithValue("@postGuidIn", postguid);
+                command.Parameters.AddWithValue("@userGuidIn", model.userguid);
+                command.Parameters.AddWithValue("@commentIn", model.comment);
+                var result = new MySqlParameter("@resultIn", MySqlDbType.Int32)
                 {
                     Direction = ParameterDirection.Output
                 };
-
                 command.Parameters.Add(result);
+                var postcommentIdParam = new MySqlParameter( "@postcommentIdOut", MySqlDbType.UInt32)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                command.Parameters.Add(postcommentIdParam);
 
                 await command.ExecuteNonQueryAsync();
 
@@ -842,6 +837,15 @@ namespace intellectualconversationforumAPI.Controllers
                         message = "Unexpected result inserting comment."
                     });
                 }
+
+                uint postcommentId = Convert.ToUInt32(postcommentIdParam.Value);
+
+                await using var notificationCommand = new MySqlCommand("AddNotification", connection);
+                notificationCommand.CommandType = CommandType.StoredProcedure;
+
+                notificationCommand.Parameters.AddWithValue("@postcommentidIn", postcommentId);
+
+                await notificationCommand.ExecuteNonQueryAsync();
 
                 return Ok(new
                 {

@@ -55,6 +55,6 @@
         public DbSet<GetCatagoryList> GetCatagoryList { get; set; }
         public DbSet<GetVerifyZipcode> GetVerifyZipcode { get; set; }
 
-        // admin
+        // notifications
     }
 }
