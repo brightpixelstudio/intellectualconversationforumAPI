@@ -6,6 +6,8 @@ using IntellectualConversationForumAPI.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
+using System.Data;
 
 namespace intellectualconversationforumAPI.Controllers
 {
@@ -299,6 +301,64 @@ namespace intellectualconversationforumAPI.Controllers
             {
                 if (openedHere && connection.State == System.Data.ConnectionState.Open)
                     await connection.CloseAsync();
+            }
+        }
+
+        [Authorize]
+        [HttpGet("GetNonActiveMembers")]
+        public async Task<IActionResult> GetNonActiveMembers(
+            [FromQuery] DateTime startDate,
+            [FromQuery] DateTime endDate)
+        {
+            var results = new List<GetNonActiveMembers>();
+
+            try
+            {
+                var connection = _context.Database.GetDbConnection();
+
+                await _context.Database.OpenConnectionAsync();
+
+                await using var command = connection.CreateCommand();
+
+                command.CommandText = "GetAllNonActiveMembers";
+                command.CommandType = CommandType.StoredProcedure;
+
+                command.Parameters.Add(new MySqlParameter("@startDateIn", startDate.Date));
+                command.Parameters.Add(new MySqlParameter("@endDateIn", endDate.Date));
+
+                await using var reader = await command.ExecuteReaderAsync();
+
+                var guidOrdinal = reader.GetOrdinal("userguid");
+
+                while (await reader.ReadAsync())
+                {
+                    results.Add(new GetNonActiveMembers
+                    {
+                        userid = reader.GetInt32("userid"),
+                        //userguid = reader.GetString("userguid"),
+                        userguid = reader.GetValue(guidOrdinal).ToString() ?? string.Empty,
+                        accountstatusid = reader.GetInt32("accountstatusid"),
+                        username = reader.GetString("username"),
+                        accountstatus = reader.GetString("accountstatus"),
+                        datechanged = reader.GetDateTime("datechanged"),
+                        changedbyuserid = reader.GetInt32("changedbyuserid"),
+                        reason = reader.IsDBNull(reader.GetOrdinal("reason"))
+                            ? string.Empty
+                            : reader.GetString("reason"),
+                        changedbyname = reader.IsDBNull(reader.GetOrdinal("changedbyname"))
+                            ? string.Empty
+                            : reader.GetString("changedbyname")
+                    });
+                }
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            finally
+            {
+                await _context.Database.CloseConnectionAsync();
             }
         }
     }
