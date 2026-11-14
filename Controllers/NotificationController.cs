@@ -1,5 +1,6 @@
 ﻿using intellectualconversationAPI.Data;
 using intellectualconversationAPI.Models;
+using intellectualconversationAPI.Services;
 using intellectualconversationforumAPI.Models.Notification;
 using intellectualconversationforumAPI.Models.Utilities;
 using Microsoft.AspNetCore.Authorization;
@@ -17,27 +18,23 @@ namespace intellectualconversationforumAPI.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<NotificationController> _logger;
+        private readonly BlobImageService _blobImageService;
 
-        public NotificationController(ILogger<NotificationController> logger, AppDbContext context)
+        public NotificationController(ILogger<NotificationController> logger, AppDbContext context, BlobImageService blobImageService)
         {
             _logger = logger;
             _context = context;
+            _blobImageService = blobImageService;
         }
 
         [Authorize]
         [HttpGet(Name = "GetNotifications")]
         public async Task<ActionResult<List<Notification>>> GetNotifications(
+            int userid,
             int limit = 20,
             int offset = 0)
         {
-            var userIdClaim = User.FindFirst("userid")?.Value;
-
-            if (!int.TryParse(userIdClaim, out int userId))
-            {
-                return Unauthorized();
-            }
-
-            if (limit < 1 || limit > 100 || offset < 0)
+            if (limit < 1 || limit > 200 || offset < 0)
             {
                 return BadRequest(new
                 {
@@ -61,7 +58,7 @@ namespace intellectualconversationforumAPI.Controllers
                 await using var command = new MySqlCommand( "GetNotifications", connection);
                 command.CommandType = CommandType.StoredProcedure;
 
-                command.Parameters.AddWithValue("@useridIn", userId);
+                command.Parameters.AddWithValue("@useridIn", userid);
                 command.Parameters.AddWithValue("@limitIn", limit);
                 command.Parameters.AddWithValue("@offsetIn", offset);
 
@@ -77,25 +74,45 @@ namespace intellectualconversationforumAPI.Controllers
                         RecipientUserId = reader.GetInt32("recipientuserid"),
                         ActorUserId = reader.GetInt32("actoruserid"),
                         ActorUsername = reader.GetString("actorusername"),
+                        ActorName = reader.GetString("actorname"),
+                        ActorGuid = reader.GetString("actorguid"),
+                        PostShortText = reader.GetString("postshorttext"),
                         PostId = reader.GetInt32("postid"),
                         PostCommentId = reader.GetUInt32("postcommentid"),
-                        IsRead = reader.GetBoolean("isread"),
-                        DateCreated = reader.GetDateTime("datecreated"),
+                        DateCreated = DateTime.SpecifyKind(
+                            reader.GetDateTime("datecreated"),
+                            DateTimeKind.Utc
+                        ),
                         DateRead = reader.IsDBNull(reader.GetOrdinal("dateread"))
                             ? null
-                            : reader.GetDateTime("dateread"),
+                            : DateTime.SpecifyKind(
+                                reader.GetDateTime("dateread"),
+                                DateTimeKind.Utc
+                            ),
+                        ProfileImageKey = reader.IsDBNull(reader.GetOrdinal("profileimagekey"))
+                            ? null
+                            : reader.GetString("profileimagekey"),
                         PostGuid = reader.GetString("postguid")
                     });
                 }
 
+                await _blobImageService.PopulateImageUrlsAsync(
+                    notifications,
+                    "profile-images",
+                    n => n.ProfileImageKey,
+                    (n, url) => n.ProfileImageUrl = url
+                );
+
                 return Ok(notifications);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine(ex.ToString());
+
                 return StatusCode(500, new
                 {
                     success = false,
-                    message = "An error occurred retrieving notifications."
+                    message = ex.ToString()
                 });
             }
             finally

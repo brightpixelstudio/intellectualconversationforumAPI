@@ -136,6 +136,7 @@ namespace intellectualconversationforumAPI.Controllers
                         members.Add(new MemberSearchResult
                         {
                             userguid = reader["userguid"].ToString()!,
+                            userid = Convert.ToInt32(reader["userid"]),
                             name = reader["name"].ToString()!,
                             username = reader["username"].ToString()!,
                             email = reader["email"].ToString()!,

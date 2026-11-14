@@ -148,7 +148,8 @@ namespace intellectualconversationAPI.Controllers
                 expiresAt = expires,
                 userGuid = member.guid,
                 username = member.username,
-                usertypeid = member.usertypeid
+                usertypeid = member.usertypeid,
+                userid = member.userid
             });
         }
     }
