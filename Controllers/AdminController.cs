@@ -1,7 +1,7 @@
 ﻿using intellectualconversationAPI.Data;
 using intellectualconversationAPI.Models.Administration;
-using intellectualconversationAPI.Models.Member;
 using intellectualconversationforumAPI.Models.Administration;
+using intellectualconversationAPI.Services;
 using IntellectualConversationForumAPI.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,13 +18,16 @@ namespace intellectualconversationforumAPI.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<AdminController> _logger;
+        private readonly BlobImageService _blobImageService;
 
         public AdminController(
             AppDbContext context,
+            BlobImageService blobImageService,
             ILogger<AdminController> logger)
         {
             _context = context;
             _logger = logger;
+            _blobImageService = blobImageService;
         }
 
         [HttpGet("VerifyAdminAccess")]
@@ -94,28 +97,6 @@ namespace intellectualconversationforumAPI.Controllers
                 if (connection.State != System.Data.ConnectionState.Open)
                     await connection.OpenAsync();
 
-                // Verify the user's current administrator role.
-                int userTypeId = 0;
-
-                await using (var adminCommand = connection.CreateCommand())
-                {
-                    adminCommand.CommandText = "GetUserTypeById";
-                    adminCommand.CommandType = System.Data.CommandType.StoredProcedure;
-
-                    var parameter = adminCommand.CreateParameter();
-                    parameter.ParameterName = "userIdIn";
-                    parameter.Value = userId;
-                    adminCommand.Parameters.Add(parameter);
-
-                    var result = await adminCommand.ExecuteScalarAsync();
-
-                    if (result != null && result != DBNull.Value)
-                        userTypeId = Convert.ToInt32(result);
-                }
-
-                if (userTypeId != (int)UserType.Admin)
-                    return Forbid();
-
                 // Execute the member search stored procedure.
                 var members = new List<MemberSearchResult>();
 
@@ -137,13 +118,31 @@ namespace intellectualconversationforumAPI.Controllers
                         {
                             userguid = reader["userguid"].ToString()!,
                             userid = Convert.ToInt32(reader["userid"]),
+                            usertypeid = Convert.ToInt32(reader["usertypeid"]),
+                            type = reader["type"].ToString(),
+                            accountstatusid = Convert.ToInt32(reader["accountstatusid"]),
+                            accountstatus = reader["accountstatus"].ToString(),
                             name = reader["name"].ToString()!,
                             username = reader["username"].ToString()!,
                             email = reader["email"].ToString()!,
-                            usertypeid = Convert.ToInt32(reader["usertypeid"]),
-                            type = reader["type"].ToString()!
+                            zipcode = Convert.ToInt32(reader["zipcode"]),
+                            postcount = Convert.ToInt32(reader["postcount"]),
+                            profile = reader["profile"].ToString()!,
+                            datelastlogin = Convert.ToDateTime(reader["datelastlogin"]),
+                            datelastpost = reader["datelastpost"] == DBNull.Value
+                                ? null
+                                : Convert.ToDateTime(reader["datelastpost"]),
+                            dateadded = Convert.ToDateTime(reader["dateadded"]),
+                            profileimagekey = reader["profileimagekey"].ToString()!
                         });
                     }
+                    
+                    // get images
+                    await _blobImageService.PopulateImageUrlsAsync(
+                        members,
+                        "profile-images",
+                        record => record.profileimagekey,
+                        (record, url) => record.profileimageurl = url);
                 }
 
                 return Ok(members);

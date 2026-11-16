@@ -222,12 +222,15 @@ namespace intellectualconversationforumAPI.Controllers
                     message = "User category settings successfully updated."
                 });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error updating user categories.");
+
                 return StatusCode(500, new
                 {
                     success = false,
-                    message = "An error occurred while updating categories."
+                    message = ex.Message,
+                    details = ex.InnerException?.Message
                 });
             }
             finally

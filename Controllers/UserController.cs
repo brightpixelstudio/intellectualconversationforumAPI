@@ -8,8 +8,6 @@ using intellectualconversationAPI.Models.Statsitics;
 using intellectualconversationAPI.Services;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using Azure;
-using Azure.AI.ContentSafety;
 
 namespace intellectualconversationforumAPI.Controllers
 {
