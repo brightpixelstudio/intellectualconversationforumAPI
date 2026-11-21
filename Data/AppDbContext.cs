@@ -1,13 +1,12 @@
 ﻿namespace intellectualconversationAPI.Data
 {
     using intellectualconversationAPI.Models;
-    using intellectualconversationAPI.Models.Posts;
     using intellectualconversationAPI.Models.Member;
+    using intellectualconversationAPI.Models.Posts;
     using intellectualconversationAPI.Models.Statsitics;
-    using intellectualconversationAPI.Models.Administration;
+    using intellectualconversationAPI.Models.Announcements;
     using Microsoft.EntityFrameworkCore;
     
-
     public class AppDbContext : DbContext
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
@@ -55,6 +54,9 @@
         public DbSet<GetCatagoryList> GetCatagoryList { get; set; }
         public DbSet<GetVerifyZipcode> GetVerifyZipcode { get; set; }
 
-        // notifications
+        // announcements
+        public DbSet<Announcement> Announcement { get; set; }
+
+        // reports
     }
 }

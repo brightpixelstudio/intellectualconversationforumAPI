@@ -473,6 +473,8 @@ namespace intellectualconversationforumAPI.Controllers
                                 ? null
                                 : reader.GetInt32(reader.GetOrdinal("userrating")),
                             comment = reader.GetString("comment"),
+                            usertypeid = reader.GetInt32("usertypeid"),
+                            type = reader.GetString("type"),
                             commentprofileimagekey =
                                 reader.IsDBNull(reader.GetOrdinal("commentprofileimagekey"))
                                     ? null

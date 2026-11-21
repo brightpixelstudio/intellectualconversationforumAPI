@@ -28,8 +28,8 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         [Authorize]
-        [HttpGet(Name = "GetNotifications")]
-        public async Task<ActionResult<List<Notification>>> GetNotifications(
+        [HttpGet(Name = "GetNotificationsMember")]
+        public async Task<ActionResult<List<Notification>>> GetNotificationsMember(
             int userid,
             int limit = 20,
             int offset = 0)
@@ -55,7 +55,7 @@ namespace intellectualconversationforumAPI.Controllers
                     openedConnection = true;
                 }
 
-                await using var command = new MySqlCommand( "GetNotifications", connection);
+                await using var command = new MySqlCommand("GetNotificationsMember", connection);
                 command.CommandType = CommandType.StoredProcedure;
 
                 command.Parameters.AddWithValue("@useridIn", userid);
@@ -77,8 +77,15 @@ namespace intellectualconversationforumAPI.Controllers
                         ActorName = reader.GetString("actorname"),
                         ActorGuid = reader.GetString("actorguid"),
                         PostShortText = reader.GetString("postshorttext"),
-                        PostId = reader.GetInt32("postid"),
-                        PostCommentId = reader.GetUInt32("postcommentid"),
+                        PostId = reader.IsDBNull(reader.GetOrdinal("postid"))
+                            ? null
+                            : reader.GetInt32("postid"),
+                        PostCommentId = reader.IsDBNull(reader.GetOrdinal("postcommentid"))
+                            ? null
+                            : reader.GetInt32("postcommentid"),
+                        ReportedId = reader.IsDBNull(reader.GetOrdinal("reportedid"))
+                            ? null
+                            : reader.GetInt32("reportedid"),
                         DateCreated = DateTime.SpecifyKind(
                             reader.GetDateTime("datecreated"),
                             DateTimeKind.Utc
