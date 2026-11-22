@@ -1,10 +1,11 @@
 ﻿using intellectualconversationAPI.Data;
+using intellectualconversationforumAPI.Models.Reported;
 using intellectualconversationforumAPI.Models.Reports;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Data;
 using MySqlConnector;
+using System.Data;
 
 namespace intellectualconversationforumAPI.Controllers
 {
@@ -58,10 +59,24 @@ namespace intellectualconversationforumAPI.Controllers
             }
         }
 
+        [HttpGet(Name = "GetReportedStatuses")]
+        public async Task<ActionResult<List<GetReportedStatuses>>> GetReportedStatuses()
+        {
+            // MySQL utilizes the 'CALL' syntax
+            var getRecords = await _context.GetReportedStatuses
+                .FromSqlRaw("CALL GetReportedStatuses()")
+                .ToListAsync();
 
-        [HttpGet(Name = "GetReportedMember")]
-        public async Task<ActionResult<List<FormReported>>> GetReportedMember(
-                   string userguid)
+            if (getRecords.Count == 0)
+                return NotFound();
+
+            // return results
+            return Ok(getRecords);
+        }
+
+        [HttpGet(Name = "GetReportedAdmin")]
+        public async Task<ActionResult<List<FormReported>>> GetReportedAdmin(
+                int reportedStatusId, string startDate, string endDate)
         {
             var connection = (MySqlConnection)_context.Database.GetDbConnection();
 
@@ -75,10 +90,12 @@ namespace intellectualconversationforumAPI.Controllers
                     openedConnection = true;
                 }
 
-                await using var command = new MySqlCommand("GetReportedMember", connection);
+                await using var command = new MySqlCommand("GetReportedAdmin", connection);
                 command.CommandType = CommandType.StoredProcedure;
-                command.Parameters.AddWithValue("@reportedguidIn", userguid);
-         
+                command.Parameters.AddWithValue("@reportedStatusIdIn", reportedStatusId);
+                command.Parameters.AddWithValue("@startDateIn", startDate);
+                command.Parameters.AddWithValue("@endDateIn", endDate);
+
                 var reported = new List<FormReported>();
 
                 await using var reader = await command.ExecuteReaderAsync();

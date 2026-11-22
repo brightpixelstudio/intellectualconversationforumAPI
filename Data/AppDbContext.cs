@@ -6,7 +6,8 @@
     using intellectualconversationAPI.Models.Statsitics;
     using intellectualconversationAPI.Models.Announcements;
     using Microsoft.EntityFrameworkCore;
-    
+    using intellectualconversationforumAPI.Models.Reported;
+
     public class AppDbContext : DbContext
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
@@ -57,6 +58,8 @@
         // announcements
         public DbSet<Announcement> Announcement { get; set; }
 
-        // reports
+        // reported
+        public DbSet<GetReportedStatuses> GetReportedStatuses { get; set; }
+        
     }
 }
