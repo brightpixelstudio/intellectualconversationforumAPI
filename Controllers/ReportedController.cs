@@ -4,12 +4,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
+using MySqlConnector;
 
 namespace intellectualconversationforumAPI.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
-   public class ReportedController : ControllerBase
+    [Route("[controller]/[action]")] // Adds the method name to the URL path
+    public class ReportedController : ControllerBase
     {
         private readonly AppDbContext _context;
         private readonly ILogger<AnnouncementController> _logger;
@@ -57,66 +58,95 @@ namespace intellectualconversationforumAPI.Controllers
             }
         }
 
-        // PUT: /Report/UpdateReported
-        /*
-        [HttpPut("UpdateReported")]
-        public async Task<IActionResult> UpdateReported(
-            [FromBody] FormReported model)
+
+        [HttpGet(Name = "GetReportedMember")]
+        public async Task<ActionResult<List<FormReported>>> GetReportedMember(
+                   string userguid)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            var connection = (MySqlConnection)_context.Database.GetDbConnection();
 
-            if (model.announcementid <= 0)
-                return BadRequest(new { message = "Invalid announcement ID." });
-
-            var connection = _context.Database.GetDbConnection();
+            bool openedConnection = false;
 
             try
             {
                 if (connection.State != ConnectionState.Open)
-                    await connection.OpenAsync();
-
-                await using var command = connection.CreateCommand();
-                command.CommandText = "UpdateAnnouncement";
-                command.CommandType = CommandType.StoredProcedure;
-
-                var idParam = command.CreateParameter();
-                idParam.ParameterName = "@announcementidIn";
-                idParam.Value = model.announcementid;
-                command.Parameters.Add(idParam);
-
-                var titleParam = command.CreateParameter();
-                titleParam.ParameterName = "@titleIn";
-                titleParam.Value = model.title;
-                command.Parameters.Add(titleParam);
-
-                var announcementParam = command.CreateParameter();
-                announcementParam.ParameterName = "@announcementIn";
-                announcementParam.Value = model.announcement;
-                command.Parameters.Add(announcementParam);
-
-                var expireParam = command.CreateParameter();
-                expireParam.ParameterName = "@dateexpireIn";
-                expireParam.Value = model.dateexpire.HasValue
-                    ? model.dateexpire.Value
-                    : DBNull.Value;
-                command.Parameters.Add(expireParam);
-
-                var result = await command.ExecuteScalarAsync();
-                int rowsAffected = Convert.ToInt32(result);
-
-                return Ok(new
                 {
-                    success = true,
-                    rowsaffected = rowsAffected
-                });
+                    await connection.OpenAsync();
+                    openedConnection = true;
+                }
+
+                await using var command = new MySqlCommand("GetReportedMember", connection);
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@reportedguidIn", userguid);
+         
+                var reported = new List<FormReported>();
+
+                await using var reader = await command.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    reported.Add(new FormReported
+                    {
+                        reportedid = reader.GetInt32("reportedid"),
+                        reportedstatusid = reader.GetInt32("reportedstatusid"),
+                        reportedusername = reader.GetString("reportedusername"),
+                        reporteduserguid = reader.GetString("reporteduserguid"),
+                        statusname = reader.GetString("statusname"),
+                        postid = reader.IsDBNull(reader.GetOrdinal("postid"))
+                            ? null
+                            : reader.GetInt32("postid"),
+                        postguid = reader.IsDBNull(reader.GetOrdinal("postguid"))
+                            ? null
+                            : reader.GetString("postguid"),
+                        postcommentid = reader.IsDBNull(reader.GetOrdinal("postcommentid"))
+                            ? null
+                            : reader.GetInt32("postcommentid"),
+                        reportedcontent = reader.GetString("reportedcontent"),
+                        reason = reader.GetString("reason"),
+                        response = reader.IsDBNull(reader.GetOrdinal("response"))
+                            ? null
+                            : reader.GetString("response"),
+                        dateadded = DateTime.SpecifyKind(
+                            reader.GetDateTime("dateadded"),
+                            DateTimeKind.Utc),
+                        dateresponded = reader.IsDBNull(reader.GetOrdinal("dateresponded"))
+                            ? null
+                            : DateTime.SpecifyKind(
+                                reader.GetDateTime("dateresponded"),
+                                DateTimeKind.Utc
+                            ),
+                        respondeduserid = reader.IsDBNull(reader.GetOrdinal("respondeduserid"))
+                            ? null
+                            : reader.GetInt32("respondeduserid"),
+                        respondedusername = reader.IsDBNull(reader.GetOrdinal("respondedusername"))
+                            ? null
+                            : reader.GetString("respondedusername"),
+                        respondeduserguid = reader.IsDBNull(reader.GetOrdinal("respondeduserguid"))
+                            ? null
+                            : reader.GetString("respondeduserguid"),
+
+                    });
+                }
+
+                return Ok(reported);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating announcement");
-                return StatusCode(500, new { message = "Error updating announcement." });
+                Console.WriteLine(ex.ToString());
+
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.ToString()
+                });
+            }
+            finally
+            {
+                if (openedConnection)
+                {
+                    await connection.CloseAsync();
+                }
             }
         }
-    */
     }
 }

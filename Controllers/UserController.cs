@@ -221,6 +221,7 @@ namespace intellectualconversationforumAPI.Controllers
             return Ok(new
             {
                 member.userid,
+                member.guid,
                 member.usertypeid,
                 member.type,
                 member.accountstatusid,
