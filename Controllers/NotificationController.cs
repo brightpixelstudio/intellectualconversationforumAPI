@@ -96,6 +96,9 @@ namespace intellectualconversationforumAPI.Controllers
                                 reader.GetDateTime("dateread"),
                                 DateTimeKind.Utc
                             ),
+                        RespondedUserId = reader.IsDBNull(reader.GetOrdinal("respondeduserid"))
+                            ? null
+                            : reader.GetInt32("respondeduserid"),                        
                         ProfileImageKey = reader.IsDBNull(reader.GetOrdinal("profileimagekey"))
                             ? null
                             : reader.GetString("profileimagekey"),

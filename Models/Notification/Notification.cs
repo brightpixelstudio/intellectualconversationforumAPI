@@ -18,6 +18,7 @@ namespace intellectualconversationforumAPI.Models.Notification
         public bool IsRead => DateRead != null;
         public DateTime DateCreated { get; set; }
         public DateTime? DateRead { get; set; }
+        public int? RespondedUserId { get; set; }        
         public string? PostGuid { get; set; } = string.Empty;
         public string? ProfileImageKey { get; set; }
         public string? ProfileImageUrl { get; set; }
