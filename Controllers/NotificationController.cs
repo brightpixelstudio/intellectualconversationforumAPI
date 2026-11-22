@@ -76,7 +76,9 @@ namespace intellectualconversationforumAPI.Controllers
                         ActorUsername = reader.GetString("actorusername"),
                         ActorName = reader.GetString("actorname"),
                         ActorGuid = reader.GetString("actorguid"),
-                        PostShortText = reader.GetString("postshorttext"),
+                        PostShortText = reader.IsDBNull(reader.GetOrdinal("postshorttext"))
+                            ? null
+                            : reader.GetString("postshorttext"),
                         PostId = reader.IsDBNull(reader.GetOrdinal("postid"))
                             ? null
                             : reader.GetInt32("postid"),
