@@ -25,7 +25,7 @@ namespace intellectualconversationforumAPI.Controllers
         }
 
         // POST: /Report/InsertReported
-        [HttpPost("InsertReported")]
+        [HttpPost]
         public async Task<IActionResult> InsertReported(
             [FromBody] FormReported model)
         {

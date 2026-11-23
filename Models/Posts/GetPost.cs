@@ -8,6 +8,7 @@ namespace intellectualconversationAPI.Models.Posts
         [Key]
         public int postid { get; set; }
         public string? post { get; set; }
+        public string? postguid { get; set; }
         public int userid { get; set; }
         public string? userguid { get; set; }
         public string? name { get; set; }
@@ -19,6 +20,8 @@ namespace intellectualconversationAPI.Models.Posts
         public int ratingcount { get; set; }
         public int? userrating { get; set; }
         public DateTime dateadded { get; set; }
+        public sbyte ispinned { get; set; }
+        public string? type { get; set; }
         public sbyte commentsclosed { get; set; }
         public string? profileimagekey { get; set; }
         public string? profileimageurl { get; set; }

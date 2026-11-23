@@ -329,6 +329,7 @@ namespace intellectualconversationforumAPI.Controllers
                     {
                         postid = Convert.ToInt32(reader["postid"]),
                         post = reader["post"] as string,
+                        postguid = reader["postguid"] as string,
                         userid = Convert.ToInt32(reader["userid"]),
                         userguid = reader["userguid"] as string,
                         name = reader["name"] as string,
@@ -342,6 +343,8 @@ namespace intellectualconversationforumAPI.Controllers
                             ? null
                             : Convert.ToInt32(reader["userrating"]),
                         dateadded = Convert.ToDateTime(reader["dateadded"]),
+                        ispinned = Convert.ToSByte(reader["ispinned"]),
+                        type = reader["type"] as string,
                         commentsclosed = Convert.ToSByte(reader["commentsclosed"]),
                         profileimagekey = reader["profileimagekey"] as string
                     };
