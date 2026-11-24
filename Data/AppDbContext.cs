@@ -40,7 +40,8 @@
         public DbSet<GetHighestRatingPosts> GetHighestRatingPosts { get; set; }        
         public DbSet<GetLatestLoginsMembers> GetLatestLoginsMembers { get; set; }
         public DbSet<GetNewestMembers> GetNewestMembers { get; set; }
-
+        public DbSet<GetStatisticsMember> GetStatisticsMember { get; set; }
+        
         // posts
         public DbSet<GetPostsByCategoryUserRating> GetPostsByCategoryUserRating { get; set; }
         public DbSet<GetPostComments> GetPostComments { get; set; }

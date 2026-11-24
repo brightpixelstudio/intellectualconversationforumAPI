@@ -105,5 +105,23 @@ namespace intellectualconversationforumAPI.Controllers
             // return results
             return Ok(getrecords);
         }
+
+        [HttpGet(Name = "GetStatisticsMember")]
+        public async Task<ActionResult<GetStatisticsMember>> GetStatisticsMember(
+            Guid userguid)
+        {
+            var records = await _context.GetStatisticsMember
+                .FromSqlRaw(
+                    "CALL GetStatisticsMember({0})",
+                    userguid.ToString())
+                .ToListAsync();
+
+            var getrecord = records.FirstOrDefault();
+
+            if (getrecord == null)
+                return NotFound();
+
+            return Ok(getrecord);
+        }
     }
 }

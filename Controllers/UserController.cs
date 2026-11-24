@@ -198,7 +198,6 @@ namespace intellectualconversationforumAPI.Controllers
             return Ok(getposts);
         }
 
-
         [HttpGet(Name = "GetProfileMember")]
         public async Task<IActionResult> GetProfileMember(string userGuid)
         {
@@ -259,7 +258,6 @@ namespace intellectualconversationforumAPI.Controllers
                 getprofile[0].profileimagekey,
             });
         }
-
 
         [HttpGet(Name = "GetUserList")]
         public async Task<ActionResult<IEnumerable<GetUserList>>> GetUserList()
