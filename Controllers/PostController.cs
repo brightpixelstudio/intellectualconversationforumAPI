@@ -349,6 +349,9 @@ namespace intellectualconversationforumAPI.Controllers
                         dateadded = Convert.ToDateTime(reader["dateadded"]),
                         ispinned = Convert.ToSByte(reader["ispinned"]),
                         type = reader["type"] as string,
+                        city = reader["city"] as string,
+                        state = reader["state"] as string,
+                        zipcode = Convert.ToInt32(reader["zipcode"]),
                         commentsclosed = Convert.ToSByte(reader["commentsclosed"]),
                         profileimagekey = reader["profileimagekey"] as string
                     };
@@ -481,6 +484,9 @@ namespace intellectualconversationforumAPI.Controllers
                                 : reader.GetInt32(reader.GetOrdinal("userrating")),
                             comment = reader.GetString("comment"),
                             usertypeid = reader.GetInt32("usertypeid"),
+                            city = reader.GetString("city"),
+                            state = reader.GetString("state"),
+                            zipcode = reader.GetInt32("zipcode"),
                             type = reader.GetString("type"),
                             commentprofileimagekey =
                                 reader.IsDBNull(reader.GetOrdinal("commentprofileimagekey"))

@@ -22,6 +22,10 @@ namespace intellectualconversationAPI.Models.Posts
         public DateTime dateadded { get; set; }
         public sbyte ispinned { get; set; }
         public string? type { get; set; }
+        public string? city { get; set; }
+        public string? state { get; set; }
+        public int? zipcode { get; set; }
+
         public sbyte commentsclosed { get; set; }
         public string? profileimagekey { get; set; }
         public string? profileimageurl { get; set; }

@@ -24,9 +24,10 @@ namespace intellectualconversationAPI.Models.Posts
         public int? userrating { get; set; }
         public sbyte commentsclosed { get; set; }
         public int usertypeid { get; set; }
-        public string? type { get; set; }
         public string? city { get; set; }
         public string? state { get; set; }
+        public int? zipcode { get; set; }
+        public string? type { get; set; }
         public bool ispinned { get; set; }
         public DateTime? datepinned { get; set; }
         public int? pinnedbyuserid { get; set; }
