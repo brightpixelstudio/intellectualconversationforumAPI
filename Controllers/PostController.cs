@@ -115,6 +115,8 @@ namespace intellectualconversationforumAPI.Controllers
                             : Convert.ToInt32(reader["userrating"]),
                         commentsclosed = Convert.ToSByte(reader["commentsclosed"]),
                         usertypeid = reader.GetInt32(reader.GetOrdinal("usertypeid")),
+                        city = reader.GetString(reader.GetOrdinal("city")),
+                        state = reader.GetString(reader.GetOrdinal("state")),
                         type = reader.GetString(reader.GetOrdinal("type")),
                         ispinned = reader.GetBoolean(reader.GetOrdinal("ispinned")),
                         datepinned = reader.IsDBNull(reader.GetOrdinal("datepinned"))
@@ -234,6 +236,8 @@ namespace intellectualconversationforumAPI.Controllers
 
                         commentsclosed = Convert.ToSByte(reader["commentsclosed"]),
                         usertypeid = reader.GetInt32(reader.GetOrdinal("usertypeid")),
+                        city = reader.GetString(reader.GetOrdinal("city")),
+                        state = reader.GetString(reader.GetOrdinal("state")),
                         type = reader.GetString(reader.GetOrdinal("type")),
                         ispinned = reader.GetBoolean(reader.GetOrdinal("ispinned")),
                         datepinned = reader.IsDBNull(reader.GetOrdinal("datepinned"))
