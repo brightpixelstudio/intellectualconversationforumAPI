@@ -15,6 +15,8 @@ namespace intellectualconversationAPI.Models.Administration
         public string username { get; set; } = "";
         public string email { get; set; } = "";
         public int zipcode { get; set; }
+        public string city { get; set; } = "";
+        public string state { get; set; } = "";
         public int postcount { get; set; }
         public string profile { get; set; } = "";
         public DateTime? datelastpost { get; set; }

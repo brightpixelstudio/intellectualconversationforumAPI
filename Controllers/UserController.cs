@@ -230,6 +230,8 @@ namespace intellectualconversationforumAPI.Controllers
                 member.username,
                 member.email,
                 member.zipcode,
+                member.city,
+                member.state,
                 member.count,
                 member.profile,
                 member.datelastpost,

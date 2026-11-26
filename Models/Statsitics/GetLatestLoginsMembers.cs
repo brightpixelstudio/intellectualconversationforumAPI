@@ -12,6 +12,8 @@ namespace intellectualconversationAPI.Models.Statsitics
         public string? email { get; set; }
         public string? name { get; set; }
         public int zipcode { get; set; }
+        public string? city { get; set; }
+        public string? state { get; set; }
         public int usertypeid { get; set; }
         public string type { get; set; } = string.Empty;
         public int accountstatusid { get; set; }

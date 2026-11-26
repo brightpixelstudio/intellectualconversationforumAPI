@@ -126,6 +126,8 @@ namespace intellectualconversationforumAPI.Controllers
                             username = reader["username"].ToString()!,
                             email = reader["email"].ToString()!,
                             zipcode = Convert.ToInt32(reader["zipcode"]),
+                            city = reader["city"].ToString()!,
+                            state = reader["state"].ToString()!,
                             postcount = Convert.ToInt32(reader["postcount"]),
                             profile = reader["profile"].ToString()!,
                             datelastlogin = Convert.ToDateTime(reader["datelastlogin"]),

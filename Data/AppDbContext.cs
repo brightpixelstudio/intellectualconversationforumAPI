@@ -1,12 +1,13 @@
 ﻿namespace intellectualconversationAPI.Data
 {
     using intellectualconversationAPI.Models;
+    using intellectualconversationAPI.Models.Announcements;
     using intellectualconversationAPI.Models.Member;
     using intellectualconversationAPI.Models.Posts;
     using intellectualconversationAPI.Models.Statsitics;
-    using intellectualconversationAPI.Models.Announcements;
-    using Microsoft.EntityFrameworkCore;
+    using intellectualconversationforumAPI.Models.Idea;
     using intellectualconversationforumAPI.Models.Reported;
+    using Microsoft.EntityFrameworkCore;
 
     public class AppDbContext : DbContext
     {
@@ -61,6 +62,13 @@
 
         // reported
         public DbSet<GetReportedStatuses> GetReportedStatuses { get; set; }
-        
+
+        // ideas
+        public DbSet<GetIdea> GetIdea { get; set; }
+        public DbSet<FormIdeaUpdate> FormIdeaUpdate { get; set; }
+        public DbSet<FormIdeaNew> FormIdeaNew { get; set; }
+        public DbSet<GetIdeaType> GetIdeaType { get; set; }
+        public DbSet<GetIdeaStatus> GetIdeaStatus { get; set; }
+
     }
 }
