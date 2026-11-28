@@ -117,6 +117,7 @@ namespace intellectualconversationforumAPI.Controllers
                         usertypeid = reader.GetInt32(reader.GetOrdinal("usertypeid")),
                         city = reader.GetString(reader.GetOrdinal("city")),
                         state = reader.GetString(reader.GetOrdinal("state")),
+                        zipcode = reader.GetInt32(reader.GetOrdinal("zipcode")),
                         type = reader.GetString(reader.GetOrdinal("type")),
                         ispinned = reader.GetBoolean(reader.GetOrdinal("ispinned")),
                         datepinned = reader.IsDBNull(reader.GetOrdinal("datepinned"))
@@ -238,6 +239,7 @@ namespace intellectualconversationforumAPI.Controllers
                         usertypeid = reader.GetInt32(reader.GetOrdinal("usertypeid")),
                         city = reader.GetString(reader.GetOrdinal("city")),
                         state = reader.GetString(reader.GetOrdinal("state")),
+                        zipcode = reader.GetInt32(reader.GetOrdinal("zipcode")),
                         type = reader.GetString(reader.GetOrdinal("type")),
                         ispinned = reader.GetBoolean(reader.GetOrdinal("ispinned")),
                         datepinned = reader.IsDBNull(reader.GetOrdinal("datepinned"))
